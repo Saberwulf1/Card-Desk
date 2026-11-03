@@ -1312,7 +1312,11 @@ function cardModal(c, defaults={}){
 }
 
 // shared: lines being bought (buy list / customer's side of a trade) → editable table
-const payEach = (it, pct) => it.price!=null ? r2(it.price) : r2((it.market||0)*pct/100);
+// whole dollars: buying rounds down, selling rounds up (typed prices are left as typed).
+// Under $1 a buy price keeps its cents, so cheap cards aren't offered at $0.
+const dollarDown = n => { n = r2(n); return n < 1 ? n : Math.floor(n + 1e-6); };
+const dollarUp = n => { n = r2(n); return n <= 0 ? 0 : Math.ceil(n - 1e-6); };
+const payEach = (it, pct) => it.price!=null ? r2(it.price) : dollarDown((it.market||0)*pct/100);
 function condEdit(it, i){
   if(isGraded(it)) return `<button type="button" class="slab" data-grade="${i}" title="Change grade, cert or value">${esc(gradeLabel(it))}</button>`;
   if(it.kind==="Sealed" || it.kind==="Other") return `<span class="muted small">${esc(it.kind)}</span>`;
@@ -1371,7 +1375,7 @@ function inListEvents(tableEl, getItems, getPct, onChange){
         resetLabel: auto!=null ? `Use ${money(auto)}` : null, onSet: v => { it.market=v; it.lock=true; onChange(); }, onReset: () => { it.lock=false; it.market=auto; onChange(); } });
       return; }
     if(pay){ const it=items[pay.dataset.pay], pct=getPct();
-      priceModal({ title:`What you'll pay: ${it.name}`, note:`Market ${money(it.market)} · ${pct}% would be ${money(r2((it.market||0)*pct/100))}. A typed price stays put when you change the %.`, value: payEach(it, pct),
+      priceModal({ title:`What you'll pay: ${it.name}`, note:`Market ${money(it.market)} · ${pct}% would be ${money(dollarDown((it.market||0)*pct/100))}. A typed price stays put when you change the %.`, value: payEach(it, pct),
         resetLabel:`Go back to ${pct}% of market`, onSet: v => { it.price=v; onChange(); }, onReset: () => { it.price=null; onChange(); } });
       return; }
   };
@@ -1456,7 +1460,7 @@ async function completePurchase(){
 
 // shared: lines from your inventory (sale / trade-out) → table
 function outLineCard(l){ return l.adhoc ? { id:null, name:l.name, set:"", cond:"", cost:l.cost, market:l.mkt, qty:999, adhoc:true } : S.cards.find(x=>x.id===l.cardId); }
-const outPrice = (l, c, pct) => l.price!=null ? l.price : r2((c.market||0)*pct/100);
+const outPrice = (l, c, pct) => l.price!=null ? l.price : dollarUp((c.market||0)*pct/100);
 function outLinesTable(lines, pct, empty, compact){
   if(!lines.length) return { html: compact ? emptyT("swap","Nothing from your side yet","Search your stock above and click cards to offer them.") : emptyT("receipt","No cards in this sale","Click cards in your stock on the left to add them."), total:0, cost:0, units:0, below:0 };
   let total=0, cost=0, units=0, below=0;
