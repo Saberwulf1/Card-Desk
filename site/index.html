@@ -130,6 +130,8 @@
   .btn.go.buy{background:linear-gradient(180deg,#2C3A6B,#1A2340);box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 16px -6px rgba(26,35,64,.7)}
   .btn.go:disabled,.btn.go.buy:disabled,.btn.go.trade:disabled{background:var(--sunk);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
   .tradebar .btn.go:disabled{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  a.btn{text-decoration:none;color:var(--ink)}
+  a.btn.primary{color:var(--accent-ink)}
   .btn.danger{color:var(--bad)}
   .btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
   .btn.link{border:0;background:none;color:var(--accent);padding:3px 6px}
@@ -312,6 +314,63 @@
   .is-graded .graded-only{display:block}
   .is-graded .raw-only{display:none}
 
+  /* overview */
+  .ov-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:2px 0 18px}
+  .ov-top .ph{margin:0;flex:1;min-width:280px}
+  .quick{display:flex;gap:8px;flex-wrap:wrap}
+  .ov-grid{display:grid;gap:20px;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start;margin-bottom:20px}
+  .ov-grid3{display:grid;gap:20px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+  @media (max-width:1100px){.ov-grid,.ov-grid3{grid-template-columns:1fr}}
+  .chart{position:relative}
+  .chart svg{display:block;width:100%;height:auto;overflow:visible}
+  .chart .grid line{stroke:var(--line);stroke-width:1}
+  .chart .axis text{fill:var(--muted);font:500 11px var(--body)}
+  .chart .bar{fill:rgba(255,255,255,.78);transition:fill .1s}
+  .chart .bar.today{fill:#fff}
+  .chart .hit{fill:transparent;cursor:default}
+  .chart .col:hover .bar{fill:url(#holo)}
+  .tip{position:absolute;pointer-events:none;z-index:5;display:none;min-width:150px;padding:9px 12px;border-radius:10px;background:#fff;color:var(--accent-ink);font-size:12.5px;box-shadow:0 12px 30px -10px rgba(0,0,0,.8);transform:translate(-50%,-100%)}
+  .tip b{display:block;font:700 13px/1.3 var(--display)}
+  .tip .r{display:flex;justify-content:space-between;gap:14px}
+  .kpi-line{display:flex;gap:22px;flex-wrap:wrap;margin:-2px 0 12px}
+  .kpi-line div{font-size:12.5px;color:var(--muted)}
+  .kpi-line b{display:block;font:800 20px/1.2 var(--display);color:var(--ink);font-variant-numeric:tabular-nums}
+  .delta{font:600 12px var(--body);margin-left:6px}
+  .att{display:flex;flex-direction:column}
+  .att a,.att div.ok{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
+  .att a:last-child{border-bottom:0}
+  .att a:hover{background:var(--hover)}
+  .att .ai{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .att .ai svg{width:16px;height:16px}
+  .att .ai.w{background:var(--warn-bg);color:var(--warn)}
+  .att .ai.b{background:var(--bad-bg);color:var(--bad)}
+  .att .ai.n{background:rgba(255,255,255,.07);color:#fff}
+  .att .ai.g{background:var(--good-bg);color:var(--good)}
+  .att .t{font-weight:600}.att .t small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+  .att .go{color:var(--muted);font-size:12.5px;white-space:nowrap}
+  .tops{display:flex;flex-direction:column}
+  .tops .it{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
+  .tops .it:last-child{border-bottom:0}
+  .tops .it:hover .nm{text-decoration:underline}
+  .tops .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tops .sub{font-size:12px;color:var(--muted)}
+  .tops .px{font:800 15px var(--display);text-align:right;font-variant-numeric:tabular-nums}
+  .hbars{display:flex;flex-direction:column;gap:11px}
+  .hb .lab{display:flex;justify-content:space-between;gap:10px;font-size:13px;margin-bottom:5px}
+  .hb .lab span:last-child{font-weight:700;font-variant-numeric:tabular-nums}
+  .hb .lab small{color:var(--muted);font-weight:400;margin-left:6px}
+  .hb .track{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden}
+  .hb .fill{height:100%;border-radius:4px;background:#fff;min-width:4px}
+  .feed{display:flex;flex-direction:column}
+  .feed .f{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .feed .f:last-child{border-bottom:0}
+  .feed .fi{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07)}
+  .feed .fi svg{width:14px;height:14px}
+  .feed .tx{min-width:0}.feed .tx div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .feed .tx small{color:var(--muted);font-size:12px}
+  .feed .amt{font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+  .feed .amt small{display:block;font-weight:400;color:var(--muted);font-size:11.5px}
+
   /* ---- dark theme with white accents ---- */
   a{color:var(--link)}
   .top{background:linear-gradient(180deg,#0B1124,var(--navy));border-bottom:1px solid rgba(255,255,255,.06)}
@@ -367,6 +426,7 @@
 <header class="top"><div class="top-in">
   <div class="brand"><div class="logo" aria-hidden="true"></div><span>Card Desk</span></div>
   <nav class="nav" id="nav">
+    <button data-tab="overview"><i data-icon="home"></i><span>Overview</span></button>
     <button data-tab="inventory"><i data-icon="inventory"></i><span>Inventory</span></button>
     <button data-tab="graded"><i data-icon="slab"></i><span>Graded</span></button>
     <button data-tab="buy"><i data-icon="buy"></i><span>Buy</span></button>
@@ -383,6 +443,32 @@
 
 <div class="page">
   <div id="banner" class="banner"></div>
+
+  <!-- OVERVIEW -->
+  <section class="view" id="v-overview">
+    <div class="ov-top">
+      <div class="ph"><h1 id="ov-hello">Overview</h1><p id="ov-sub">A quick look at stock, sales and anything that needs you.</p></div>
+      <div class="quick">
+        <a class="btn" href="#buy"><i data-icon="buy"></i>New buy</a>
+        <a class="btn" href="#sell"><i data-icon="sell"></i>New sale</a>
+        <a class="btn" href="#trade"><i data-icon="trade"></i>New trade</a>
+        <a class="btn primary" href="#graded" id="ov-slab"><i data-icon="slab"></i>Add slab</a>
+      </div>
+    </div>
+    <div class="stats" id="ov-stats"></div>
+    <div class="ov-grid">
+      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>Sales, last 30 days</h2><span class="spacer"></span><span class="muted small">trades included · hover a bar</span></div>
+        <div class="kpi-line" id="ov-kpis"></div>
+        <div class="chart" id="ov-chart"></div>
+      </div>
+      <div class="panel"><div class="panel-h"><h2><span class="ic y" data-icon="bell"></span>Needs attention</h2></div><div class="att" id="ov-att"></div></div>
+    </div>
+    <div class="ov-grid3">
+      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="trend"></span>Most valuable in stock</h2><span class="spacer"></span><a class="small" href="#inventory">All stock</a></div><div class="tops" id="ov-tops"></div></div>
+      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="stack"></span>Stock by type</h2><span class="spacer"></span><span class="muted small">market value</span></div><div class="hbars" id="ov-mix"></div></div>
+      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Recent activity</h2><span class="spacer"></span><a class="small" href="#money">Money</a></div><div class="feed" id="ov-feed"></div></div>
+    </div>
+  </section>
 
   <!-- INVENTORY -->
   <section class="view" id="v-inventory">
@@ -581,6 +667,11 @@ const ICONS = {
   refresh:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
+  home:'<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
+  bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  warn:'<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2v.1"/>',
+  link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
   slab:'<rect x="5" y="2.5" width="14" height="19" rx="2"/><rect x="7.5" y="5" width="9" height="3" rx=".8"/><rect x="7.5" y="10" width="9" height="9" rx="1"/>',
   stack:'<rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v12"/>',
   coins:'<ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.6-2.4-2.9-5.5-3"/>',
@@ -941,9 +1032,9 @@ function mountInvPicker(root, { onPick, inCart, dropdown }){
 }
 
 // ---------- tabs ----------
-const TABS = ["inventory","graded","buy","sell","trade","money"];
+const TABS = ["overview","inventory","graded","buy","sell","trade","money"];
 function showTab(t){
-  if(!TABS.includes(t)) t = "inventory";
+  if(!TABS.includes(t)) t = "overview";
   ui.tab = t;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab===t));
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id==="v-"+t));
@@ -1546,8 +1637,109 @@ $("#m-activity").onclick = async e => {
   }
 };
 
+
+// ---------- OVERVIEW ----------
+function stockGroups(){
+  const g = {};
+  for(const c of S.cards){ if(!(c.qty>0)) continue;
+    const key = isGraded(c) ? "Graded slabs" : (c.kind==="Sealed"||c.kind==="Other") ? "Sealed & other" : ((CAT.manifest && CAT.manifest.games[c.game] && CAT.manifest.games[c.game].label) || (c.game ? c.game : "Other raw cards"));
+    const x = g[key] = g[key] || { val:0, n:0 }; x.val += (c.market||0)*c.qty; x.n += c.qty; }
+  return Object.entries(g).sort((a,b) => b[1].val - a[1].val);
+}
+function salesByDay(days){
+  const out = [], start = new Date(); start.setHours(0,0,0,0); start.setDate(start.getDate()-days+1);
+  for(let i=0;i<days;i++){ const d = new Date(start); d.setDate(start.getDate()+i); out.push({ d, total:0, profit:0, n:0 }); }
+  for(const x of S.sales){ const i = Math.floor((x.at - start.getTime())/86400000); if(i>=0 && i<days){ out[i].total += x.total||0; out[i].profit += x.profit||0; out[i].n++; } }
+  return out;
+}
+function niceMax(v){ if(v<=0) return 100; const p = Math.pow(10, Math.floor(Math.log10(v))); for(const m of [1,2,2.5,5,10]) if(m*p >= v) return m*p; return 10*p; }
+const shortMoney = n => n>=1000 ? "$"+(n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,"")+"k" : "$"+Math.round(n);
+function drawSalesChart(el, data){
+  const W=640, H=190, L=44, R=8, T=10, B=24, iw=W-L-R, ih=H-T-B, n=data.length, step=iw/n, bw=Math.max(3, step-2);
+  const max = niceMax(Math.max(...data.map(d=>d.total)));
+  const y = v => T + ih - (v/max)*ih;
+  const ticks = [0, max/2, max];
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily sales for the last ${n} days"><g class="grid">${ticks.map(t=>`<line x1="${L}" x2="${W-R}" y1="${y(t)}" y2="${y(t)}"/>`).join("")}</g>
+    <g class="axis">${ticks.map(t=>`<text x="${L-8}" y="${y(t)+4}" text-anchor="end">${shortMoney(t)}</text>`).join("")}
+    ${data.map((d,i)=> (i%7===(n-1)%7) ? `<text x="${L+i*step+step/2}" y="${H-6}" text-anchor="middle">${i===n-1?"Today":d.d.toLocaleDateString(undefined,{month:"short",day:"numeric"})}</text>` : "").join("")}</g>`;
+  data.forEach((d,i) => {
+    const x = L + i*step + (step-bw)/2, h = d.total>0 ? Math.max(3, (d.total/max)*ih) : 0, top = T+ih-h, r = Math.min(4, bw/2, h);
+    const bar = h ? `<path class="bar ${i===n-1?"today":""}" d="M${x},${T+ih} V${top+r} Q${x},${top} ${x+r},${top} H${x+bw-r} Q${x+bw},${top} ${x+bw},${top+r} V${T+ih} Z"/>` : "";
+    svg += `<g class="col" data-i="${i}"><rect class="hit" x="${L+i*step}" y="${T}" width="${step}" height="${ih}"/>${bar}</g>`;
+  });
+  svg += `</svg><div class="tip"></div>`;
+  el.innerHTML = svg;
+  const tip = el.querySelector(".tip"), sv = el.querySelector("svg");
+  el.onmousemove = e => { const g = e.target.closest(".col"); if(!g){ tip.style.display="none"; return; }
+    const d = data[g.dataset.i], rect = sv.getBoundingClientRect(), sc = rect.width/W;
+    tip.innerHTML = `<b>${d.d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</b><div class="r"><span>Sales</span><span>${money(d.total)}</span></div><div class="r"><span>Profit</span><span>${money(d.profit)}</span></div><div class="r"><span>Transactions</span><span>${d.n}</span></div>`;
+    tip.style.display = "block";
+    tip.style.left = Math.min(rect.width-80, Math.max(80, (L + (+g.dataset.i+.5)*step)*sc)) + "px";
+    tip.style.top = (y(d.total)*sc - 8) + "px"; };
+  el.onmouseleave = () => { tip.style.display = "none"; };
+}
+const attItem = (cls, icon, title, sub, href, go="View") => `<a href="${href}" data-goto="${href}"><span class="ai ${cls}">${svgIcon(icon)}</span><span class="t">${title}<small>${sub}</small></span><span class="go">${go} ›</span></a>`;
+function renderOverview(){
+  const inStock = S.cards.filter(c => (c.qty||0) > 0);
+  let units=0, cost=0, mkt=0; inStock.forEach(c => { units+=c.qty; cost+=c.cost*c.qty; mkt+=(c.market||0)*c.qty; });
+  const [mf] = periodRange("month"), m = sums(mf, Infinity);
+  const h = new Date().getHours();
+  $("#ov-hello").textContent = h<12 ? "Good morning" : h<18 ? "Good afternoon" : "Good evening";
+  $("#ov-sub").textContent = `${units.toLocaleString()} card${units===1?"":"s"} in stock · ${new Date().toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}`;
+  $("#ov-stats").innerHTML = `
+    <div class="stat">${svgIcon("tag","bg")}<div class="k">Stock market value</div><div class="v">${money(mkt)}</div></div>
+    <div class="stat hero">${svgIcon("trend","bg")}<div class="k">Potential profit in stock</div><div class="v ${mkt-cost>=0?"good":"bad"}">${money(mkt-cost)}</div></div>
+    <div class="stat">${svgIcon("money","bg")}<div class="k">Sales this month (${m.nSales})</div><div class="v">${money(m.rev)}</div></div>
+    <div class="stat">${svgIcon("coins","bg")}<div class="k">Net profit this month</div><div class="v ${m.net>=0?"good":"bad"}">${money(m.net)}</div></div>
+    <div class="stat">${svgIcon("cart","bg")}<div class="k">Cash in − out this month</div><div class="v ${m.cash>=0?"good":"bad"}">${money(m.cash)}</div></div>`;
+  // sales chart + comparison
+  const d30 = salesByDay(30), now = Date.now();
+  const tot = d30.reduce((s,d)=>s+d.total,0), prof = d30.reduce((s,d)=>s+d.profit,0), cnt = d30.reduce((s,d)=>s+d.n,0);
+  const prevFrom = d30[0].d.getTime() - 30*86400000, prev = S.sales.filter(x => x.at>=prevFrom && x.at<d30[0].d.getTime()).reduce((s,x)=>s+(x.total||0),0);
+  const delta = prev>0 ? Math.round((tot-prev)/prev*100) : null;
+  $("#ov-kpis").innerHTML = `<div>Sales<b>${money(tot)}${delta!=null?`<span class="delta ${delta>=0?"good":"bad"}">${delta>=0?"▲":"▼"} ${Math.abs(delta)}% vs prior 30 days</span>`:""}</b></div><div>Profit<b class="${prof>=0?"":"bad"}">${money(prof)}</b></div><div>Transactions<b>${cnt}</b></div><div>Average sale<b>${money(cnt?tot/cnt:0)}</b></div>`;
+  if(tot>0) drawSalesChart($("#ov-chart"), d30);
+  else $("#ov-chart").innerHTML = `<div class="empty">${ART.receipt()}<b>No sales in the last 30 days</b>Completed sales and trades show up here day by day.</div>`;
+  // needs attention
+  const att = [];
+  const stale = inStock.filter(c => !c.custom && !isGraded(c) && (!c.marketAt || now-c.marketAt > 14*86400000)).length;
+  const under = inStock.filter(c => (c.market||0) < floorOf(c.cost)).length;
+  const unlinked = inStock.filter(c => !c.productId && !c.custom && (!c.kind || c.kind==="Card")).length;
+  const noCert = inStock.filter(c => isGraded(c) && !c.cert).length;
+  const mh = CAT.manifest ? (now - CAT.manifest.builtAt)/3600000 : null;
+  if(mh!=null && (mh>36 || !CAT.manifest.ok)) att.push(attItem("b","warn","Price updates look stuck", `Last update ${ago(CAT.manifest.builtAt)}${CAT.manifest.ok?"":", with errors"}. Check the Actions tab on GitHub.`, "#money"));
+  if(under) att.push(attItem("b","trend", `${under} card${under===1?"":"s"} worth less than your minimum`, `Market has dropped below what you paid plus ${minP()}%.`, "#inventory:profit"));
+  if(stale) att.push(attItem("w","hourglass", `${stale} price${stale===1?"":"s"} older than 14 days`, "Link them to the catalog or update them by hand.", "#inventory:marketAt"));
+  if(unlinked) att.push(attItem("n","link", `${unlinked} card${unlinked===1?"":"s"} not linked to the catalog`, "No picture and no nightly price. Use Find in catalog.", "#inventory:name"));
+  if(noCert) att.push(attItem("n","slab", `${noCert} slab${noCert===1?"":"s"} without a cert number`, "Add it so you can verify the slab later.", "#graded"));
+  if(buy.items.length) att.push(attItem("n","buy", `Unfinished buy list (${buy.items.length} line${buy.items.length===1?"":"s"})`, `Offer so far ${money(buy.items.reduce((s,it)=>s+payEach(it,buy.pct)*it.qty,0))}.`, "#buy","Open"));
+  if(trade.inItems.length || trade.outItems.length) att.push(attItem("n","trade", "Unfinished trade", `${trade.outItems.length} of yours, ${trade.inItems.length} of theirs.`, "#trade","Open"));
+  $("#ov-att").innerHTML = att.length ? att.join("") : `<div class="ok"><span class="ai g">${svgIcon("check")}</span><span class="t">All clear<small>Prices are fresh and nothing's waiting on you.</small></span><span></span></div>`;
+  // most valuable
+  const tops = inStock.slice().sort((a,b)=>(b.market||0)-(a.market||0)).slice(0,6);
+  $("#ov-tops").innerHTML = tops.length ? tops.map(c => `<div class="it" data-id="${c.id}">${thumb(c.productId)}<div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="sub">${isGraded(c)?esc(gradeLabel(c)):esc(c.cond||c.kind||"")}${c.qty>1?` · ×${c.qty}`:""} · paid ${money(c.cost)}</div></div><div class="px">${money(c.market)}<div class="small ${(c.market||0)-c.cost>=0?"good":"bad"}" style="font:500 11.5px var(--body)">${(c.market||0)-c.cost>=0?"+":""}${money((c.market||0)-c.cost)}</div></div></div>`).join("")
+    : `<div class="empty">${ART.fan()}<b>Nothing in stock yet</b>Your most valuable cards will show here.</div>`;
+  // stock by type
+  const groups = stockGroups(), gmax = Math.max(1, ...groups.map(([,x])=>x.val));
+  $("#ov-mix").innerHTML = groups.length ? groups.map(([k,x]) => `<div class="hb" title="${esc(k)}: ${x.n} cards, ${money(x.val)}"><div class="lab"><span>${esc(k)}<small>${x.n} card${x.n===1?"":"s"}</small></span><span>${money(x.val)}</span></div><div class="track"><div class="fill" style="width:${(x.val/gmax*100).toFixed(1)}%"></div></div></div>`).join("")
+    : `<div class="empty">${ART.binder()}<b>No stock to break down yet</b></div>`;
+  // recent activity
+  const feed = [
+    ...S.sales.filter(x=>!x.tradeId).map(x => ({ at:x.at, icon:"sell", t:`Sold ${(x.items||[]).reduce((s,i)=>s+i.qty,0)} card${(x.items||[]).reduce((s,i)=>s+i.qty,0)===1?"":"s"}${x.buyer?" to "+x.buyer:""}`, s:(x.items||[]).map(i=>i.name).join(", "), amt:`+${money(x.total)}`, cls:"good", note:`profit ${money(x.profit)}` })),
+    ...S.purchases.filter(x=>!x.tradeId).map(x => ({ at:x.at, icon:"buy", t:`Bought ${(x.items||[]).reduce((s,i)=>s+i.qty,0)} card${(x.items||[]).reduce((s,i)=>s+i.qty,0)===1?"":"s"}${x.seller?" from "+x.seller:""}`, s:(x.items||[]).map(i=>i.name).join(", "), amt:`−${money(x.totalPaid)}`, cls:"", note:`${x.pct}% offer` })),
+    ...S.trades.map(x => ({ at:x.at, icon:"trade", t:`Trade${x.customer?" with "+x.customer:""}`, s:`gave ${x.outCount}, took ${x.inCount}`, amt: x.cash>0?`+${money(x.cash)}`:x.cash<0?`−${money(-x.cash)}`:"even", cls:x.cash>0?"good":"", note:"cash difference" })),
+    ...S.expenses.map(x => ({ at:x.at, icon:"receipt", t:x.desc||"Expense", s:x.cat||"", amt:`−${money(x.amount)}`, cls:"", note:"expense" }))
+  ].sort((a,b)=>b.at-a.at).slice(0,7);
+  $("#ov-feed").innerHTML = feed.length ? feed.map(f => `<div class="f"><span class="fi">${svgIcon(f.icon)}</span><div class="tx"><div>${esc(f.t)}</div><small>${esc(f.s)}${f.s?" · ":""}${ago(f.at)}</small></div><div class="amt ${f.cls}">${f.amt}<small>${esc(f.note)}</small></div></div>`).join("")
+    : `<div class="empty">${ART.receipt()}<b>No activity yet</b>Buys, sales, trades and expenses appear here.</div>`;
+}
+$("#ov-tops").onclick = e => { const it = e.target.closest("[data-id]"); if(it) cardModal(S.cards.find(c => c.id===it.dataset.id)); };
+$("#ov-att").onclick = e => { const a = e.target.closest("[data-goto]"); if(!a) return; const [tab, sort] = a.dataset.goto.slice(1).split(":");
+  if(sort){ e.preventDefault(); ui.invSort = sort; ui.invDir = sort==="name" ? 1 : sort==="profit" ? 1 : 1; ui.invKind = "all"; $("#inv-kind").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.k==="all")); location.hash = tab; showTab(tab); renderInventory(); } };
+$("#ov-slab").onclick = e => { e.preventDefault(); location.hash = "graded"; showTab("graded"); cardModal(null, { kind:"Graded", cond:"" }); };
+
 // ---------- render all ----------
-function renderAll(){ renderInventory(); renderGraded(); renderBuy(); renderSell(); renderTrade(); renderMoney(); }
+function renderAll(){ renderOverview(); renderInventory(); renderGraded(); renderBuy(); renderSell(); renderTrade(); renderMoney(); }
 
 // refresh inventory market prices from the nightly price lookup
 const refreshed = new Set(); let refreshing = false;
@@ -1697,9 +1889,9 @@ if("serviceWorker" in navigator) addEventListener("load", () => navigator.servic
 
 paintIcons();
 document.querySelectorAll("[data-art]").forEach(el => el.innerHTML = ART[el.dataset.art]());
-showTab(location.hash.slice(1) || "inventory");
+showTab(location.hash.slice(1) || "overview");
 renderAll();
-loadManifest().then(() => { buySearch.refresh(); trSearch.refresh(); refreshInventoryPrices(); });
+loadManifest().then(() => { buySearch.refresh(); trSearch.refresh(); refreshInventoryPrices(); renderOverview(); });
 })();
 </script>
 </body>
