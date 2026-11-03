@@ -488,7 +488,9 @@
       <div class="row" style="padding:12px 16px">
         <div class="search" style="width:340px;max-width:100%"><i data-icon="search"></i><input id="inv-search" placeholder="Search name, set or printing…"></div>
         <div class="seg" id="inv-kind"><button data-k="all" class="on">All</button><button data-k="raw">Raw cards</button><button data-k="graded">Graded</button><button data-k="other">Sealed &amp; other</button></div>
+        <select id="inv-cond" title="Condition" style="width:auto"><option value="">Any condition</option><option value="played">Not near mint</option><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select>
         <label class="chk"><input type="checkbox" id="inv-sold"> Show sold</label>
+        <button class="btn" id="inv-jt" hidden title="Look up the TCGplayer price for each shown card's condition on JustTCG"></button>
         <span class="muted small" id="inv-count"></span>
         <span class="spacer"></span>
         <button class="btn primary" id="inv-add"><i data-icon="plus"></i>Add card</button>
@@ -618,7 +620,13 @@
             <span class="spacer"></span><button class="btn" id="cond-reset" style="align-self:flex-end">Defaults</button><button class="btn primary" id="cond-save" style="align-self:flex-end">Save</button></div>
         </div>
         <div class="panel"><div class="panel-h"><h2><span class="ic g" data-icon="refresh"></span>Price data</h2></div><div id="sync-info" class="muted"></div>
-          <div class="row" style="margin-top:10px"><button class="btn" id="cat-offline">Save catalog for offline use</button><span class="muted small" id="cat-offline-msg"></span></div></div>
+          <div class="row" style="margin-top:10px"><button class="btn" id="cat-offline">Save catalog for offline use</button><span class="muted small" id="cat-offline-msg"></span></div>
+          <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
+            <b>Condition prices (JustTCG)</b>
+            <p class="muted small" style="margin:4px 0 8px">With a JustTCG key you can look up the real TCGplayer price for played cards (LP, MP, HP, DMG) instead of using the % table. It only runs when you ask: in Inventory, pick a condition (or “Not near mint”) and click <b>Check condition prices</b>. Each lookup covers up to 20 cards; the free plan has 100 lookups a day.</p>
+            <div class="row"><input id="jt-key" type="password" placeholder="Paste your JustTCG API key" autocomplete="off" style="flex:1;min-width:180px"><button class="btn" id="jt-save">Save key</button></div>
+            <div class="muted small" id="jt-msg" style="margin-top:8px"></div>
+          </div></div>
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="user"></span>Account &amp; backup</h2></div>
           <div class="muted" id="acct" style="margin-bottom:10px"></div>
           <div class="row"><button class="btn" id="bk-down">Download backup</button><label class="btn" style="margin:0;color:var(--ink);font-size:14px">Restore from backup<input type="file" id="bk-up" accept=".json,application/json" style="display:none"></label><span class="spacer"></span><button class="btn danger" id="sign-out">Sign out</button></div>
@@ -803,7 +811,11 @@ function condPct(cond, vintage, kind){
 }
 // sealed promos (still in their plastic wrapper), linked to the raw card: worth the raw near-mint price × your premium %
 const premOf = c => c && c.sealedPromo && Number(c.premium) > 0 ? Number(c.premium) : 100;
-const cardPrice = (c, nm) => r2(condPrice(nm, c.sealedPromo ? "NM" : c.cond, c.vintage, c.kind) * premOf(c) / 100);
+// condition the card is priced at ("NM" for a sealed promo)
+const priceCond = c => c.sealedPromo ? "NM" : (c.cond || "NM");
+// a JustTCG price for the card's condition (checked by hand from Inventory); used while the condition still matches
+const cpFresh = c => !!c && c.cp != null && c.cpCond === priceCond(c) && priceCond(c) !== "NM";
+const cardPrice = (c, nm) => r2((cpFresh(c) ? Number(c.cp) : condPrice(nm, priceCond(c), c.vintage, c.kind)) * premOf(c) / 100);
 const condPrice = (nm, cond, vintage, kind) => r2((Number(nm)||0) * condPct(cond, vintage, kind) / 100);
 
 // ---------- catalog (built nightly from TCGCSV, served as this site's own files) ----------
@@ -1088,7 +1100,8 @@ addEventListener("hashchange", () => showTab(location.hash.slice(1)));
 const INV_COLS = [
   ["", null], ["Card","name"], ["Cond","cond"], ["Qty","qty"], ["Paid","cost"], ["Market","market"], ["Min","min"], ["Sell for","sell"], ["Profit","profit"], ["Price age","marketAt"], ["Added","addedAt"]
 ];
-const invVal = (c, k) => k==="min" ? floorOf(c.cost) : k==="sell" ? suggestedOf(c) : k==="profit" ? (c.market||0)-(c.cost||0) : c[k];
+const COND_RANK = { NM:0, LP:1, MP:2, HP:3, DMG:4 };
+const invVal = (c, k) => k==="cond" ? (isGraded(c) ? 8 : c.kind==="Sealed"||c.kind==="Other" ? 9 : COND_RANK[c.cond] ?? 5) : k==="min" ? floorOf(c.cost) : k==="sell" ? suggestedOf(c) : k==="profit" ? (c.market||0)-(c.cost||0) : c[k];
 function renderInventory(){
   const inStock = S.cards.filter(c => (c.qty||0) > 0);
   let units=0, cost=0, mkt=0;
@@ -1101,10 +1114,13 @@ function renderInventory(){
     <div class="stat">${svgIcon("hourglass","bg")}<div class="k">Prices older than 14 days</div><div class="v">${inStock.filter(c=>!c.custom && !isGraded(c) && (!c.marketAt || Date.now()-c.marketAt>14*86400000)).length}</div></div>`;
   const q = $("#inv-search").value.trim().toLowerCase(), showSold = $("#inv-sold").checked;
   const kindOk = c => ui.invKind==="all" || (ui.invKind==="graded" ? isGraded(c) : ui.invKind==="raw" ? (!c.kind || c.kind==="Card") : (c.kind==="Sealed" || c.kind==="Other"));
-  const list = S.cards.filter(c => kindOk(c) && (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)));
+  const cf = $("#inv-cond").value;
+  const condOk = c => !cf || (isGraded(c) || c.kind==="Sealed" || c.kind==="Other" ? false : cf==="played" ? priceCond(c)!=="NM" : priceCond(c)===cf);
+  const list = S.cards.filter(c => kindOk(c) && condOk(c) && (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)));
   const k = ui.invSort, d = ui.invDir;
   list.sort((a,b) => { const x=invVal(a,k), y=invVal(b,k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * d; });
   $("#inv-count").textContent = `${list.length} line${list.length===1?"":"s"}`;
+  INV_SHOWN = list; drawJtButton();
   const head = `<thead><tr>${INV_COLS.map(([l,key],i) => `<th class="${key?"sort":""} ${key===k?"sorted":""} ${i>=3&&i<=8?"n":""}" ${key?`data-s="${key}"`:""}>${l}${key===k?(d>0?" ▲":" ▼"):""}</th>`).join("")}<th></th></tr></thead>`;
   if(!list.length){ $("#inv-table").innerHTML = head + (S.cards.length ? empty("search","No cards match","Try part of the name, the set, or show sold cards.",12) : empty("fan","Your inventory is empty","Add a card here, or complete a purchase on the Buy tab and it lands here.",12)); return; }
   $("#inv-table").innerHTML = head + "<tbody>" + list.map(c => {
@@ -1116,17 +1132,19 @@ function renderInventory(){
       <td>${condCell(c)}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
       <td class="n">${money(c.cost)}</td>
-      <td class="n">${money(c.market)}${c.productId&&c.lock&&!isGraded(c)?` <span class="chip" title="You set this price">yours</span>`:""}</td>
+      <td class="n">${money(c.market)}${c.productId&&c.lock&&!isGraded(c)?` <span class="chip" title="You set this price">yours</span>`:cpFresh(c)?` <span class="chip good" title="${esc(c.cpCond)} price from JustTCG, checked ${ago(c.cpAt)}">${esc(c.cpCond)}</span>`:""}</td>
       <td class="n muted">${money(fl)}</td>
       <td class="n"><b>${money(sug)}</b></td>
       <td class="n ${prof>=c.cost*minP()/100?"good":"bad"}">${prof>=0?"+":""}${money(prof)} <span class="small">(${pctP}%)</span></td>
-      <td class="n ${stale?"":"muted"}">${c.custom||isGraded(c)?"—":stale?`<span class="chip warn">${ago(c.marketAt)}</span>`:ago(c.marketAt)}</td>
+      <td class="n ${stale?"":"muted"}">${c.custom||isGraded(c)?"—":stale?`<span class="chip warn">${ago(c.marketAt)}</span>`:ago(c.marketAt)}${cpFresh(c)?`<div class="small muted">${esc(c.cpCond)} checked ${ago(c.cpAt)}</div>`:""}</td>
       <td class="n muted small">${c.addedAt?dayStr(c.addedAt):""}</td>
       <td>${c.productId?`<a href="${productUrl(c.productId)}" target="_blank" rel="noopener" data-stop title="Open on TCGplayer">↗</a>`:""}</td></tr>`;
   }).join("") + "</tbody>";
 }
 $("#inv-search").addEventListener("input", renderInventory);
 $("#inv-sold").addEventListener("change", renderInventory);
+$("#inv-cond").addEventListener("change", () => { if($("#inv-cond").value && ui.invSort!=="cond"){ ui.invSort="cond"; ui.invDir=1; } renderInventory(); });
+let INV_SHOWN = [];
 $("#inv-table").onclick = e => {
   const th = e.target.closest("[data-s]");
   if(th){ const s = th.dataset.s; if(ui.invSort===s) ui.invDir *= -1; else { ui.invSort = s; ui.invDir = (s==="name"||s==="cond") ? 1 : -1; } renderInventory(); return; }
@@ -1215,12 +1233,12 @@ function cardModal(c, defaults={}){
         m.querySelector("#cm-img").innerHTML = link ? `<img src="${imgSmall(link.productId)}" data-peek="${link.productId}" data-zoom alt="" onerror="this.parentNode.textContent='No picture'">` : "No picture — link to the catalog to get one"; };
       const g = () => f.kind.value==="Graded";
       const ebay = () => { m.querySelector("#cm-ebay").href = ebayUrl({ name:f.name.value, set:f.set.value, grader:f.grader.value, grade:f.grade.value }); };
-      const recalc = () => { ebay(); if(g()) return; if(link && link.nm && !lock && !f.custom.checked){ f.market.value = cardPrice({ cond:f.cond.value, vintage:f.vintage.checked, kind:f.kind.value, sealedPromo:f.sealedPromo.checked, premium:f.premium.value }, link.nm).toFixed(2); calc(); syncPaid(); } };
+      const recalc = () => { ebay(); if(g()) return; if(link && link.nm && !lock && !f.custom.checked){ f.market.value = cardPrice({ cond:f.cond.value, vintage:f.vintage.checked, kind:f.kind.value, sealedPromo:f.sealedPromo.checked, premium:f.premium.value, ...(link.productId===c.productId ? { cp:c.cp, cpAt:c.cpAt, cpCond:c.cpCond } : {}) }, link.nm).toFixed(2); calc(); syncPaid(); } };
       const drawLink = () => {
         const el = m.querySelector("#cm-link");
         if(f.custom.checked){ el.innerHTML = ""; return; }
         el.innerHTML = link
-          ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price — nightly updates off":f.sealedPromo.checked?`sealed promo at ${premOf({sealedPromo:true,premium:f.premium.value})}% of raw NM · updates nightly`:"price updates nightly"}</span><span class="spacer"></span>
+          ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price — nightly updates off":f.sealedPromo.checked?`sealed promo at ${premOf({sealedPromo:true,premium:f.premium.value})}% of raw NM · updates nightly`:link.productId===c.productId&&cpFresh({...c, cond:f.cond.value, sealedPromo:false})?`${esc(f.cond.value)} price ${money(c.cp)} from JustTCG, checked ${ago(c.cpAt)} · check again from Inventory`:"price updates nightly"}</span><span class="spacer"></span>
               ${lock&&!g()?`<button type="button" class="btn sm" id="cm-unlock">Use market price</button>`:""}<button type="button" class="btn sm" id="cm-relink">Change</button><button type="button" class="btn sm" id="cm-unlink">Unlink</button></div>`
           : `<div class="row" style="margin-bottom:10px"><span class="muted small">Type the card name to search the catalog — link it to get a picture and nightly prices.</span></div>`;
         const u=el.querySelector("#cm-unlock"); if(u) u.onclick = () => { lock=false; recalc(); drawLink(); };
@@ -1885,12 +1903,115 @@ async function refreshInventoryPrices(){
       refreshed.add(c.id+":"+built);
       const pr = (buckets[c.productId % nb] || {})[c.productId]; if(!pr) continue;
       const nm = pr[c.sub] ?? Object.values(pr)[0]; if(nm == null) continue;
-      try { await db.collection("cards").doc(c.id).update({ nm:r2(nm), market:cardPrice(c, nm), marketAt:built }); n++; } catch(e){ console.warn("price refresh", c.id, e); }
+      try { await db.collection("cards").doc(c.id).update(cpFresh(c) ? { nm:r2(nm), marketAt:Math.max(c.marketAt||0, c.cpAt||0) || built } : { nm:r2(nm), market:cardPrice(c, nm), marketAt:built }); n++; } catch(e){ console.warn("price refresh", c.id, e); }
     }
     if(n) toast(`Updated market prices on ${n} card${n===1?"":"s"}`);
   } catch(e){ console.warn("refresh prices", e); }
   finally { refreshing = false; }
 }
+
+// ---------- condition prices from JustTCG (api.justtcg.com, v1 batch lookup by TCGplayer product id) ----------
+const JT = { key:null, state:{}, running:false };
+const JT_BATCH = 20;   // free plan: 20 products per request, 100 requests a day, 1,000 a month
+const JT_COND = { NM:"Near Mint", LP:"Lightly Played", MP:"Moderately Played", HP:"Heavily Played", DMG:"Damaged" };
+const jtNorm = s => String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+function jtDrawStatus(extra){
+  const el = $("#jt-msg"); if(!el) return;
+  const st = JT.state || {};
+  const parts = [];
+  if(!JT.key) parts.push("No key saved — played cards use the % table.");
+  else parts.push("Key saved.");
+  if(st.lastRun) parts.push(`Last update ${ago(st.lastRun)}${(Date.now()-st.lastRun)<86400000?` at ${new Date(st.lastRun).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`:""}: ${st.updated||0} card${st.updated===1?"":"s"} priced${st.missing?`, ${st.missing} not found`:""}${st.pending?`, ${st.pending} not checked yet`:""}.`);
+  if(st.error) parts.push(`<span class="bad">${esc(st.error)}</span>`);
+  if(st.usage) parts.push(`Plan: ${esc(st.usage.apiPlan||"?")} · ${st.usage.apiDailyRequestsRemaining ?? "?"} requests left today, ${st.usage.apiRequestsRemaining ?? "?"} this month.`);
+  if(extra) parts.push(extra);
+  el.innerHTML = parts.join(" ");
+}
+// only raw linked cards in a condition other than near mint (NM prices come from the nightly TCGCSV data)
+const jtEligible = c => c.productId && !c.custom && !isGraded(c) && (c.kind||"Card")==="Card" && (c.qty||0) > 0 && priceCond(c) !== "NM" && !!JT_COND[priceCond(c)];
+const jtLookups = cards => Math.ceil(new Set(cards.map(c => String(c.productId))).size / JT_BATCH);
+function drawJtButton(){
+  const b = $("#inv-jt"); if(!b) return;
+  const el = INV_SHOWN.filter(jtEligible);
+  b.hidden = !el.length;
+  if(el.length) b.textContent = JT.running ? "Checking prices…" : `Check condition prices (${el.length} card${el.length===1?"":"s"} · ${jtLookups(el)} lookup${jtLookups(el)===1?"":"s"})`;
+  b.disabled = JT.running;
+}
+async function jtPost(items){
+  let res;
+  try { res = await fetch("https://api.justtcg.com/v1/cards", { method:"POST", headers:{ "Content-Type":"application/json", "x-api-key":JT.key }, body:JSON.stringify(items) }); }
+  catch(e){ throw new Error("Couldn't reach JustTCG from the browser (offline, or JustTCG blocks web pages). Prices fall back to the % table."); }
+  let body = null; try { body = await res.json(); } catch(e){}
+  if(!res.ok) throw new Error(res.status===401||res.status===403 ? `JustTCG refused the key or the request (${res.status}${body&&body.error?": "+body.error:""}).` : res.status===429 ? "JustTCG's request limit for now is used up; the rest will be priced on the next run." : `JustTCG error ${res.status}${body&&body.error?": "+body.error:""}.`);
+  return body || {};
+}
+// pick the variant for this card: its condition, its printing (TCGplayer sub-type), its language
+function jtPick(card, c){
+  const want = priceCond(c), lang = c.game==="pokemonjp" ? "japanese" : "english";
+  let vs = (card.variants||[]).filter(v => jtNorm(v.condition)===jtNorm(JT_COND[want]) || jtNorm(v.condition)===jtNorm(want));
+  if(vs.length > 1){ const l = vs.filter(v => jtNorm(v.language||"English")===lang); if(l.length) vs = l; }
+  if(vs.length > 1 && c.sub){ const p = vs.filter(v => jtNorm(v.printing)===jtNorm(c.sub)); if(p.length) vs = p; else { const q = vs.filter(v => jtNorm(c.sub).includes(jtNorm(v.printing)) || jtNorm(v.printing).includes(jtNorm(c.sub))); if(q.length) vs = q; } }
+  const priced = vs.filter(v => v.price != null);
+  return priced.length === 1 ? priced[0] : priced.length > 1 && !c.sub ? priced.sort((a,b)=>a.price-b.price)[0] : priced.length > 1 ? null : null;
+}
+// look up condition prices for these cards (only when you ask, from Inventory)
+async function jtRun(cards, { replaceOwn=false } = {}){
+  if(!db || !JT.key || JT.running) return;
+  const st = JT.state || {};
+  const due = cards.filter(c => jtEligible(c) && (replaceOwn || !c.lock));
+  if(!due.length) return;
+  JT.running = true; drawJtButton(); jtDrawStatus("Checking condition prices…");
+  // one lookup per product, asking for every condition needed for it
+  const byPid = new Map();
+  for(const c of due){ const k = String(c.productId); if(!byPid.has(k)) byPid.set(k, { cards:[], conds:new Set() }); const g = byPid.get(k); g.cards.push(c); g.conds.add(JT_COND[priceCond(c)] ? priceCond(c) : "NM"); }
+  const pids = [...byPid.keys()];
+  let updated = 0, missing = 0, error = null, usage = st.usage, done = 0;
+  try {
+    for(let i = 0; i < pids.length; i += JT_BATCH){
+      const chunk = pids.slice(i, i+JT_BATCH);
+      const body = await jtPost(chunk.map(pid => ({ tcgplayerId:pid, condition:[...byPid.get(pid).conds].join(",") })));
+      if(body._metadata) usage = body._metadata;
+      const found = new Map((body.data||[]).map(card => [String(card.tcgplayerId), card]));
+      const now = Date.now();
+      for(const pid of chunk){
+        done++;
+        const card = found.get(pid);
+        for(const c of byPid.get(pid).cards){
+          const v = card && jtPick(card, c);
+          if(!v){ missing++; continue; }
+          const next = { ...c, cp:r2(v.price), cpAt:now, cpCond:priceCond(c) };
+          try { await db.collection("cards").doc(c.id).update({ cp:next.cp, cpAt:now, cpCond:next.cpCond, market:cardPrice(next, c.nm), marketAt:now, lock:false }); updated++; }
+          catch(e){ console.warn("jt update", c.id, e); }
+        }
+      }
+      if(usage && usage.apiDailyRequestsRemaining != null && usage.apiDailyRequestsRemaining <= 0 && i+JT_BATCH < pids.length) { error = "Today's JustTCG lookups are used up. Check the rest tomorrow (sort by Price age to find them)."; break; }
+    }
+  } catch(e){ error = e.message; console.warn("JustTCG", e); }
+  const pending = pids.slice(done).reduce((n,pid) => n + byPid.get(pid).cards.length, 0);
+  JT.state = { lastRun:Date.now(), updated, missing, pending, error, usage };
+  try { await db.doc("settings/justtcg").set({ key:JT.key, state:JT.state }); } catch(e){ console.warn(e); }
+  JT.running = false; jtDrawStatus(); drawJtButton();
+  toast(error ? error : `Condition prices updated on ${updated} card${updated===1?"":"s"}${missing?` · ${missing} not found on JustTCG`:""}`);
+}
+$("#jt-save").onclick = async () => {
+  if(!needDb()) return;
+  const k = $("#jt-key").value.trim();
+  JT.key = k || null;
+  if(await safe(() => db.doc("settings/justtcg").set({ key:JT.key, state:JT.state||{} }), k ? "JustTCG key saved" : "JustTCG key removed")){ $("#jt-key").value = ""; $("#jt-key").placeholder = k ? "Key saved — paste a new one to replace it" : "Paste your JustTCG API key"; jtDrawStatus(); }
+};
+$("#inv-jt").onclick = () => {
+  if(!needDb()) return;
+  if(!JT.key){ toast("Add your JustTCG key first: Money › Price data"); return; }
+  const el = INV_SHOWN.filter(jtEligible), own = el.filter(c => c.lock), st = JT.state||{}, u = st.usage||{};
+  openModal(`<h3>Check condition prices</h3>
+    <p>Looks up the TCGplayer price for the condition of each of the <b>${el.length}</b> card${el.length===1?"":"s"} shown (near mint cards are skipped — the nightly prices cover those). This uses <b>${jtLookups(el)}</b> of your JustTCG lookups${u.apiDailyRequestsRemaining!=null?` (you had ${u.apiDailyRequestsRemaining} left today, ${u.apiRequestsRemaining} this month, at the last check)`:""}.</p>
+    ${own.length?`<label class="chk" style="margin:6px 0 4px"><input type="checkbox" id="jt-own"> Also replace the price on ${own.length} card${own.length===1?"":"s"} where you typed your own</label>`:""}
+    <p class="muted small">Prices stay as found until you check again. Sort Inventory by Price age to see the oldest checks.</p>
+    <div class="row" style="margin-top:12px"><span class="spacer"></span><button class="btn" id="jt-x">Cancel</button><button class="btn primary" id="jt-go">Check prices</button></div>`, m => {
+      m.querySelector("#jt-x").onclick = closeModal;
+      m.querySelector("#jt-go").onclick = () => { const ro = !!(m.querySelector("#jt-own")||{}).checked; closeModal(); jtRun(el, { replaceOwn:ro }); };
+    });
+};
 
 // ---------- data (Firebase: Google sign-in + Firestore with offline cache) ----------
 const fbApp = F.initializeApp(FIREBASE);
@@ -1949,6 +2070,8 @@ function connect(user){
     }, onErr);
   }
   db.doc("settings/main").onSnapshot(d => { if(d.exists) S.settings = { minProfit:10, ...d.data() }; renderAll(); }, onErr);
+  db.doc("settings/justtcg").onSnapshot(d => { const x = d.exists ? d.data() : {}; JT.key = x.key || null; JT.state = x.state || {};
+    const inp = $("#jt-key"); if(inp) inp.placeholder = JT.key ? "Key saved — paste a new one to replace it" : "Paste your JustTCG API key"; jtDrawStatus(); drawJtButton(); }, e => console.warn("justtcg settings", e));
 }
 const net = () => $("#net").classList.toggle("off", navigator.onLine);
 addEventListener("online", net); addEventListener("offline", net); net();
