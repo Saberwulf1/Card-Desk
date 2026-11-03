@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Card Desk</title>
+<meta name="theme-color" content="#1f5eff">
+<link rel="manifest" href="app.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#fff; --ink:#15171a; --muted:#5d6470; --line:#dde1e6;
+    --accent:#1f5eff; --accent-ink:#fff; --good:#0f8a4a; --good-bg:#e6f6ed;
+    --bad:#c62828; --bad-bg:#fdecec; --warn:#a15c00; --warn-bg:#fff4e0;
+    --r:12px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#111317; --panel:#1b1e24; --ink:#f1f3f5; --muted:#9aa3ae; --line:#2c313a;
+      --accent:#5b8cff; --good:#43c984; --good-bg:#16301f; --bad:#ff6b6b; --bad-bg:#3a1a1a;
+      --warn:#f0b04a; --warn-bg:#3a2a10; }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font:17px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  button,input,select{font:inherit;color:inherit}
+  .wrap{max-width:900px;margin:0 auto;padding:0 14px 90px}
+  header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;max-width:900px;margin:0 auto;padding:0 14px}
+  .tab{padding:12px 4px;border:1px solid var(--line);background:var(--panel);border-radius:10px;font-weight:650;cursor:pointer;font-size:16px}
+  .tab.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .view{display:none}.view.on{display:block}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:14px}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+  .stat .k{font-size:13px;color:var(--muted);font-weight:600}
+  .stat .v{font-size:26px;font-weight:750;font-variant-numeric:tabular-nums;margin-top:2px}
+  .big{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums}
+  .good{color:var(--good)} .bad{color:var(--bad)} .muted{color:var(--muted)}
+  label{display:block;font-size:13px;font-weight:650;color:var(--muted);margin-bottom:4px}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+  .grid{display:grid;gap:10px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+  .g-add{grid-template-columns:2fr 1.3fr 1fr 1fr .7fr}
+  @media (max-width:640px){.g-add{grid-template-columns:1fr 1fr}.g-add .full{grid-column:1/-1}.g3{grid-template-columns:1fr 1fr}}
+  .btn{padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:650;cursor:pointer}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .btn.go{background:var(--good);color:#fff;border-color:var(--good);font-size:19px;padding:15px 18px;width:100%}
+  .btn.danger{color:var(--bad)}
+  .btn.sm{padding:7px 11px;font-size:15px}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .spacer{flex:1}
+  .pcts{display:flex;gap:6px;flex-wrap:wrap}
+  .pct{flex:1;min-width:56px;padding:12px 6px;border:2px solid var(--line);border-radius:10px;background:var(--panel);font-weight:800;font-size:19px;cursor:pointer}
+  .pct.on{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .item{display:grid;grid-template-columns:1fr auto;gap:4px 12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  .item.tap{cursor:pointer}.item.tap:hover{border-color:var(--accent)}
+  .item .name{font-weight:700;font-size:18px}
+  .item .sub{font-size:14px;color:var(--muted)}
+  .item .right{text-align:right;font-variant-numeric:tabular-nums}
+  .item .price{font-size:20px;font-weight:800}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;grid-column:1/-1;margin-top:4px}
+  .chip{font-size:13px;font-weight:650;padding:3px 8px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-variant-numeric:tabular-nums}
+  .chip.good{background:var(--good-bg);border-color:transparent}
+  .chip.bad{background:var(--bad-bg);border-color:transparent}
+  .chip.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+  .qty{display:inline-flex;align-items:center;gap:6px}
+  .qty button{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-weight:800;cursor:pointer}
+  .empty{padding:22px;text-align:center;color:var(--muted)}
+  .total{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
+  .total + .total{border-top:1px dashed var(--line)}
+  table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:15px}
+  th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-size:13px}
+  .banner{padding:12px 14px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-weight:600;margin-bottom:14px;display:none}
+  .banner.on{display:block}
+  a.look{font-size:14px;font-weight:650;color:var(--accent);text-decoration:none}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:20}
+  .modal-bg.on{display:flex}
+  .modal{background:var(--panel);width:100%;max-width:560px;border-radius:16px 16px 0 0;padding:18px;max-height:92vh;overflow:auto}
+  @media (min-width:640px){.modal-bg{align-items:center}.modal{border-radius:16px}}
+  .modal h3{margin:0 0 12px;font-size:20px}
+  .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:10px;font-weight:650;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30}
+  .toast.on{opacity:1}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .seg button{border:0;background:var(--panel);padding:9px 12px;font-weight:650;cursor:pointer;font-size:15px}
+  .seg button.on{background:var(--accent);color:var(--accent-ink)}
+  .seg.scroll{display:flex;overflow-x:auto;max-width:100%}
+  .seg.scroll button{white-space:nowrap}
+  .cat-res{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-height:420px;overflow:auto}
+  .cat-row{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);cursor:pointer}
+  .cat-row:hover{border-color:var(--accent)}
+  .cat-row .top{display:flex;gap:10px;align-items:baseline}
+  .cat-row .nm{font-weight:700;flex:1}
+  .cat-row .px{font-weight:800;font-variant-numeric:tabular-nums}
+  .prts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .prt{font-size:13px;font-weight:700;padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-variant-numeric:tabular-nums}
+  .prt:hover{border-color:var(--accent);color:var(--accent)}
+  .picked{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--good-bg);margin-bottom:10px;flex-wrap:wrap}
+  .picked b{flex:1;min-width:160px}
+  .status{font-size:13px;color:var(--muted);margin-top:8px}
+  .status.warn{color:var(--warn)}
+  .ctab{width:100%;border-collapse:collapse}
+  .ctab td,.ctab th{padding:4px;border:0;text-align:center}
+  .ctab input{padding:8px;text-align:center}
+  .gate{position:fixed;inset:0;z-index:40;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px}
+  .gate.on{display:flex}
+  .gate .box{max-width:380px;width:100%;text-align:center}
+  .gate h1{font-size:30px;margin:0 0 6px}
+  .gbtn{display:inline-flex;gap:10px;align-items:center;justify-content:center;width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:700;font-size:18px;cursor:pointer;margin-top:18px}
+  .net{position:fixed;right:10px;bottom:10px;z-index:25;font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;background:var(--warn-bg);color:var(--warn);display:none}
+  .net.on{display:block}
+</style>
+</head>
+<body>
+<header>
+  <nav class="tabs">
+    <button class="tab" data-tab="inventory">Inventory</button>
+    <button class="tab" data-tab="buy">Buy</button>
+    <button class="tab" data-tab="sell">Sell</button>
+    <button class="tab" data-tab="money">Money</button>
+  </nav>
+</header>
+<div class="wrap">
+  <div id="banner" class="banner"></div>
+
+  <!-- INVENTORY -->
+  <section class="view" id="v-inventory">
+    <div class="stats" id="inv-stats"></div>
+    <div class="row" style="margin-bottom:12px">
+      <input id="inv-search" placeholder="Search cards…" style="flex:1;min-width:180px">
+      <button class="btn primary" id="inv-add">+ Add card</button>
+    </div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="seg" id="inv-sort">
+        <button data-s="recent" class="on">Newest</button>
+        <button data-s="name">A–Z</button>
+        <button data-s="value">Value</button>
+        <button data-s="stale">Price age</button>
+      </div>
+      <span class="spacer"></span>
+      <label style="display:flex;gap:6px;align-items:center;margin:0;font-size:14px"><input type="checkbox" id="inv-sold" style="width:auto"> Show sold</label>
+    </div>
+    <div class="list" id="inv-list"></div>
+  </section>
+
+  <!-- BUY -->
+  <section class="view" id="v-buy">
+    <div class="panel">
+      <h2>Find a card</h2>
+      <div class="seg scroll" id="cat-game" style="margin-bottom:10px"></div>
+      <input id="cat-q" placeholder="Type a name, e.g. charizard base" autocomplete="off" enterkeyhint="search">
+      <div class="cat-res" id="cat-res"></div>
+      <div class="status" id="cat-status"></div>
+    </div>
+    <div class="panel">
+      <h2>Add card to buy list</h2>
+      <div id="b-picked"></div>
+      <form id="buy-form" class="grid g-add" autocomplete="off">
+        <div class="full"><label>Card name</label><input id="b-name" required placeholder="e.g. Charizard ex"></div>
+        <div><label>Set / number</label><input id="b-set" placeholder="optional"></div>
+        <div><label>Condition</label><select id="b-cond"></select></div>
+        <div><label id="b-mlabel">Market $</label><input id="b-market" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+        <div><label>Qty</label><input id="b-qty" type="number" min="1" value="1" inputmode="numeric"></div>
+        <div class="full row" style="gap:14px"><label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="b-custom" style="width:auto"> Not on TCGplayer</label>
+          <label style="display:flex;gap:6px;align-items:center;margin:0"><input type="checkbox" id="b-vintage" style="width:auto"> Vintage</label>
+          <select id="b-kind" style="width:auto"></select></div>
+        <div class="full row"><button class="btn primary" type="submit">Add to list</button><a class="look" id="b-look" href="https://www.tcgplayer.com" target="_blank" rel="noopener">Look up on TCGplayer ↗</a></div>
+      </form>
+    </div>
+    <div class="panel">
+      <h2>Offer % of market</h2>
+      <div class="pcts" id="buy-pcts"></div>
+    </div>
+    <div class="list" id="buy-list" style="margin-bottom:14px"></div>
+    <div class="panel" id="buy-totals"></div>
+  </section>
+
+  <!-- SELL -->
+  <section class="view" id="v-sell">
+    <div class="panel">
+      <h2>Find card in inventory</h2>
+      <div class="row"><input id="sell-search" placeholder="Type a card name…" style="flex:1;min-width:180px"><button class="btn" id="sell-adhoc">+ Item not in inventory</button></div>
+      <div class="list" id="sell-results" style="margin-top:10px"></div>
+    </div>
+    <div class="panel">
+      <h2>Sell at % of market</h2>
+      <div class="pcts" id="sell-pcts"></div>
+      <div class="sub muted" style="margin-top:8px;font-size:14px" id="sell-floor-note"></div>
+    </div>
+    <div class="list" id="sell-list" style="margin-bottom:14px"></div>
+    <div class="panel" id="sell-totals"></div>
+  </section>
+
+  <!-- MONEY -->
+  <section class="view" id="v-money">
+    <div class="row" style="margin-bottom:12px">
+      <div class="seg" id="m-period">
+        <button data-p="month" class="on">This month</button>
+        <button data-p="last">Last month</button>
+        <button data-p="year">This year</button>
+        <button data-p="all">All time</button>
+      </div>
+    </div>
+    <div class="stats" id="m-stats"></div>
+    <div class="panel">
+      <h2>Add an expense</h2>
+      <form id="exp-form" class="grid g3" autocomplete="off">
+        <div style="grid-column:1/-1"><label>What for</label><input id="e-desc" required placeholder="e.g. Show table fee, sleeves, shipping"></div>
+        <div><label>Category</label><select id="e-cat"><option>Supplies</option><option>Shipping</option><option>Event / table fee</option><option>Fees</option><option>Travel</option><option>Other</option></select></div>
+        <div><label>Amount $</label><input id="e-amt" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+        <div><label>Date</label><input id="e-date" type="date" required></div>
+        <div style="grid-column:1/-1"><button class="btn primary" type="submit">Add expense</button></div>
+      </form>
+    </div>
+    <div class="panel"><h2>By month</h2><div id="m-months" style="overflow-x:auto"></div></div>
+    <div class="panel"><h2>Activity</h2>
+      <div class="seg" id="m-act" style="margin-bottom:10px">
+        <button data-a="sales" class="on">Sales</button><button data-a="purchases">Purchases</button><button data-a="expenses">Expenses</button>
+      </div>
+      <div class="list" id="m-activity"></div>
+    </div>
+    <div class="panel"><h2>Settings</h2>
+      <div class="row"><div style="flex:1;min-width:160px"><label>Minimum profit on a sale (%)</label><input id="set-min" type="number" min="0" step="1"></div><button class="btn" id="set-save" style="align-self:flex-end">Save</button></div>
+    </div>
+    <div class="panel"><h2>Condition pricing (% of near-mint market)</h2>
+      <p class="muted" style="margin:0 0 10px;font-size:14px">TCGplayer's free data has one market price per printing (near mint). Other conditions are priced at these percentages. Graded and sealed items always use 100%.</p>
+      <div id="cond-table"></div>
+      <div class="row" style="margin-top:10px"><div style="flex:1;min-width:160px"><label>Cards from sets released before this year count as vintage</label><input id="set-vyear" type="number" min="1990" max="2100" step="1"></div>
+        <button class="btn" id="cond-reset" style="align-self:flex-end">Defaults</button><button class="btn primary" id="cond-save" style="align-self:flex-end">Save</button></div>
+    </div>
+    <div class="panel"><h2>Price data</h2><div id="sync-info" class="muted" style="font-size:15px"></div>
+      <div class="row" style="margin-top:10px"><button class="btn" id="cat-offline">Save catalog for offline use</button><span class="muted" id="cat-offline-msg" style="font-size:14px"></span></div></div>
+    <div class="panel"><h2>Account &amp; backup</h2>
+      <div class="muted" id="acct" style="font-size:15px;margin-bottom:10px"></div>
+      <div class="row"><button class="btn" id="bk-down">Download backup</button><label class="btn" style="margin:0;color:var(--ink);font-size:17px">Restore from backup<input type="file" id="bk-up" accept=".json,application/json" style="display:none"></label><span class="spacer"></span><button class="btn danger" id="sign-out">Sign out</button></div>
+    </div>
+  </section>
+</div>
+
+<div class="gate on" id="gate"><div class="box">
+  <h1>Card Desk</h1><p class="muted" id="gate-msg">Checking sign-in…</p>
+  <button class="gbtn" id="gate-btn" style="display:none"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.5h7.1c4.2-3.8 6.5-9.5 6.5-16.2z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7c1.7-5.2 6.6-9.1 12.3-9.1z"/></svg>Sign in with Google</button>
+  <button class="btn" id="gate-out" style="display:none;margin-top:10px;width:100%">Use a different account</button>
+</div></div>
+<div class="net" id="net">Offline · changes will sync</div>
+<div class="modal-bg" id="modal-bg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import * as F from "./vendor/firebase.js";
+const FIREBASE = {
+  apiKey: "AIzaSyBwQ8Qik94mYtcES7x-_ENinXtKtYI4mmM",
+  authDomain: "card-hub-ef241.firebaseapp.com",
+  projectId: "card-hub-ef241",
+  storageBucket: "card-hub-ef241.firebasestorage.app",
+  messagingSenderId: "819011073157",
+  appId: "1:819011073157:web:ad469b3e2174566786a5ec"
+};
+(function(){
+const CONDS = ["NM","LP","MP","HP","DMG"];
+const KINDS = ["Card","Graded","Sealed","Other"];
+const BUY_PCTS = [60,70,80,90,95];
+const SELL_PCTS = [60,70,80,90,95,100];
+
+const S = { cards:[], purchases:[], sales:[], expenses:[], settings:{minProfit:10}, loaded:{} };
+let db = null;
+const buy = { items:[], pct:80 };
+const sell = { items:[], pct:100 };
+const ui = { invSort:"recent", period:"month", act:"sales" };
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const r2 = n => Math.round((Number(n)||0)*100)/100;
+const up2 = n => Math.ceil(((Number(n)||0)*100) - 1e-6)/100;
+const money = n => { n = Number(n)||0; const s = Math.abs(n).toLocaleString(undefined,{style:"currency",currency:"USD"}); return n<0 ? "−"+s : s; };
+const minP = () => Number(S.settings.minProfit ?? 10);
+const floorOf = cost => up2(cost * (1 + minP()/100));
+const suggestedOf = c => Math.max(up2(c.market||0), floorOf(c.cost||0));
+const tcgUrl = (name,set) => "https://www.tcgplayer.com/search/all/product?q=" + encodeURIComponent([name,set].filter(Boolean).join(" "));
+const dayStr = t => new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+const ago = t => { if(!t) return "never"; const d = Math.floor((Date.now()-t)/86400000); return d<=0?"today":d===1?"1 day ago":d+" days ago"; };
+const todayISO = () => { const d=new Date(); d.setMinutes(d.getMinutes()-d.getTimezoneOffset()); return d.toISOString().slice(0,10); };
+const lsGet = k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } };
+const lsSet = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+
+// ---------- condition pricing ----------
+const COND_DEF = { modern:{LP:85,MP:70,HP:50,DMG:35}, vintage:{LP:70,MP:50,HP:30,DMG:20}, vintageYear:2003 };
+const condTable = v => ({ ...(v?COND_DEF.vintage:COND_DEF.modern), ...((v?S.settings.condVintage:S.settings.condModern)||{}) });
+const vYear = () => Number(S.settings.vintageYear || COND_DEF.vintageYear);
+function condPct(cond, vintage, kind){
+  if(kind==="Graded" || kind==="Sealed" || !cond || cond==="NM") return 100;
+  const p = Number(condTable(vintage)[cond]); return isFinite(p) ? p : 100;
+}
+const condPrice = (nm, cond, vintage, kind) => r2((Number(nm)||0) * condPct(cond, vintage, kind) / 100);
+const productUrl = id => "https://www.tcgplayer.com/product/" + id;
+
+// ---------- catalog (built nightly from TCGCSV, served as this page's own files) ----------
+const CAT = { manifest:null, mErr:null, shards:{}, sets:{}, buckets:{} };
+const STOPW = new Set(["ex","gx","the","of","and","with","for","de","la","le"]);
+const nwords = s => String(s||"").normalize("NFKD").replace(/[̀-ͯ]/g,"").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+async function readJSON(url){
+  const res = await fetch(url); if(!res.ok) throw new Error(res.status+" "+url);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if(buf[0]===0x1f && buf[1]===0x8b){
+    const txt = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream("gzip"))).text();
+    return JSON.parse(txt);
+  }
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+async function loadManifest(){
+  try { const r = await fetch("catalog/manifest.json?t="+Date.now(), {cache:"no-store"}); if(!r.ok) throw new Error(r.status); CAT.manifest = await r.json(); CAT.mErr=null; }
+  catch(e){ CAT.mErr = e; console.warn("catalog manifest", e); }
+  renderCatStatus();
+  return CAT.manifest;
+}
+const ver = () => CAT.manifest ? CAT.manifest.builtAt : 0;
+function memo(store, key, url){ if(!store[key]) store[key] = readJSON(url).catch(e => { delete store[key]; throw e; }); return store[key]; }
+const getSets = g => memo(CAT.sets, g, `catalog/${g}/sets.json?v=${ver()}`);
+const getShard = (g,k) => memo(CAT.shards, g+"/"+k, `catalog/${g}/${k}.json?v=${ver()}`);
+const getBucket = b => memo(CAT.buckets, b, `catalog/prices/${b}.json?v=${ver()}`);
+function shardKey(g, tok){
+  const info = CAT.manifest && CAT.manifest.games[g]; if(!info) return null;
+  const sh = new Set(info.shards);
+  if(sh.has(tok.slice(0,2))) return tok.slice(0,2);
+  if(sh.has(tok[0])) return tok[0];
+  return null;
+}
+// row: [productId, name, number, rarity, groupId, {subType: market}]
+const numNorm = s => String(s||"").toLowerCase().split("/").map(x => x.replace(/^0+(?=\w)/,"")).join("/");
+async function catSearch(g, q){
+  // tokens with a digit and a slash (4/102) or a set code (LOB-001) are card numbers
+  const raw = String(q||"").toLowerCase().split(/\s+/).filter(Boolean);
+  const nums = raw.filter(t => /\d/.test(t) && /[\/-]/.test(t)).map(numNorm);
+  const toks = nwords(raw.filter(t => !(/\d/.test(t) && /[\/-]/.test(t))).join(" "));
+  const lead = toks.filter(t => /^[a-z]/.test(t) && t.length>=2 && !STOPW.has(t)).sort((a,b)=>b.length-a.length)[0];
+  if(!lead) return [];
+  const k = shardKey(g, lead); if(!k) return [];
+  const [rows, sets] = await Promise.all([getShard(g,k), getSets(g)]);
+  const out = [];
+  for(const r of rows){
+    const st = sets[r[4]] || ["","",null];
+    const nameW = nwords(r[1]), hay = nameW.concat(nwords(st[0]), nwords(st[1]));
+    const num = numNorm(r[2]);
+    let ok = true, score = 0;
+    for(const n of nums){ if(num && (num===n || (n.includes("-") && num.endsWith(n)))) score += 4; else { ok=false; break; } }
+    if(!ok) continue;
+    for(const t of toks){
+      if(nameW.some(w => w.startsWith(t))) { score += 2; continue; }
+      if(hay.some(w => w.startsWith(t))) { score += 1; continue; }
+      if(/^\d+$/.test(t) && num && num.split("/")[0]===t.replace(/^0+(?=\d)/,"")) { score += 3; continue; }
+      ok = false; break;
+    }
+    if(!ok) continue;
+    if(nameW[0] && nameW[0].startsWith(toks[0])) score += 1;
+    const best = Math.max(0, ...Object.values(r[5]||{}));
+    out.push({ r, st, score, best });
+  }
+  out.sort((a,b) => b.score-a.score || b.best-a.best);
+  return out.slice(0, 40).map(o => ({ productId:o.r[0], name:o.r[1], number:o.r[2], rarity:o.r[3], setName:o.st[0], setAbbr:o.st[1], year:o.st[2], prices:o.r[5]||{}, game:g }));
+}
+const subOrder = s => ["Normal","Holofoil","Reverse Holofoil","1st Edition","1st Edition Holofoil","Unlimited","Unlimited Holofoil"].indexOf(s)+1 || 99;
+const subs = p => Object.entries(p.prices||{}).sort((a,b)=>subOrder(a[0])-subOrder(b[0]));
+const setLabel = p => [p.setName, p.number].filter(Boolean).join(" · ");
+const isVintageYear = y => !!y && y < vYear();
+
+function renderCatStatus(){
+  const m = CAT.manifest, el = $("#cat-status"), info = $("#sync-info");
+  let txt, warn = false;
+  if(!m){ txt = CAT.mErr ? "Card catalog isn't available yet — type card details below." : "Loading card catalog…"; warn = !!CAT.mErr; }
+  else {
+    const hrs = (Date.now()-m.builtAt)/3600000;
+    warn = !m.ok || hrs > 36;
+    txt = `TCGplayer market prices via TCGCSV · updated ${ago(m.builtAt)}${hrs<24?` at ${new Date(m.builtAt).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`:""}${!m.ok?" · last update had errors":""}${hrs>36?" · nightly update may have stopped":""}`;
+  }
+  if(el){ el.textContent = txt; el.classList.toggle("warn", warn); }
+  if(info){
+    info.innerHTML = m ? `${esc(txt)}<br>${Object.values(m.games).map(g=>`${esc(g.label)}: ${g.error?`<span class="bad">failed</span>`:(g.products||0).toLocaleString()+" products"}`).join(" · ")}<br>Inventory cards picked from the catalog update their market price automatically the first time you open Card Desk after each nightly update (unless you've typed your own price).` : esc(txt);
+  }
+}
+
+// one catalog search box, used on the Buy tab and in the card editor
+function mountCatSearch(gameEl, qEl, resEl, onPick){
+  const games = () => CAT.manifest ? Object.entries(CAT.manifest.games).filter(([,g])=>!g.error).map(([k,g])=>[k,g.label]) : [["pokemon","Pokémon"]];
+  let game = lsGet("cd-game") || "pokemon", seq = 0, results = [];
+  const drawGames = () => {
+    const gs = games(); if(!gs.some(([k])=>k===game)) game = gs[0] ? gs[0][0] : "pokemon";
+    gameEl.innerHTML = gs.map(([k,l]) => `<button type="button" data-g="${k}" class="${k===game?"on":""}">${esc(l)}</button>`).join("");
+  };
+  gameEl.onclick = e => { const b=e.target.closest("[data-g]"); if(!b) return; game=b.dataset.g; lsSet("cd-game",game); drawGames(); run(); qEl.focus(); };
+  const run = async () => {
+    const q = qEl.value.trim(), my = ++seq;
+    if(q.length < 2){ resEl.innerHTML = ""; return; }
+    if(!CAT.manifest){ resEl.innerHTML = `<div class="empty">${CAT.mErr?"Catalog not available — enter the card by hand below.":"Loading catalog…"}</div>`; if(!CAT.mErr) await loadManifest().then(drawGames); if(!CAT.manifest) return; }
+    resEl.innerHTML = `<div class="muted" style="padding:6px 2px;font-size:14px">Searching…</div>`;
+    try { results = await catSearch(game, q); }
+    catch(e){ console.error(e); if(my===seq) resEl.innerHTML = `<div class="empty">Couldn't load the catalog. Check your connection and try again.</div>`; return; }
+    if(my !== seq) return;
+    resEl.innerHTML = results.length ? results.map((p,i) => {
+      const ss = subs(p);
+      return `<div class="cat-row" data-i="${i}"><div class="top"><span class="nm">${esc(p.name)}</span><span class="px">${ss.length?money(Math.max(...ss.map(s=>s[1]))):"—"}</span></div>
+        <div class="sub muted" style="font-size:14px">${esc([p.setName+(p.setAbbr?` (${p.setAbbr})`:""), p.number?"#"+p.number:"", p.rarity, p.year].filter(Boolean).join(" · "))}${isVintageYear(p.year)?` <span class="chip warn">vintage</span>`:""}</div>
+        ${ss.length>1?`<div class="prts">${ss.map(([s,v])=>`<button type="button" class="prt" data-i="${i}" data-s="${esc(s)}">${esc(s)} ${money(v)}</button>`).join("")}</div>`:""}</div>`;
+    }).join("") : `<div class="empty">No ${esc((games().find(g=>g[0]===game)||["",""])[1])} cards match “${esc(q)}”. Try another spelling or game, or enter it by hand below.</div>`;
+  };
+  let t; qEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 180); });
+  resEl.onclick = e => {
+    const b = e.target.closest("[data-i]"); if(!b) return;
+    const p = results[Number(b.dataset.i)]; if(!p) return;
+    const ss = subs(p); const sub = b.dataset.s || (ss[0] ? ss[0][0] : "");
+    onPick({ ...p, sub, nm: (p.prices||{})[sub] || 0 });
+  };
+  drawGames();
+  return { refresh(){ drawGames(); }, clear(){ qEl.value=""; resEl.innerHTML=""; } };
+}
+
+// refresh inventory market prices from the nightly price lookup
+const refreshed = new Set(); let refreshing = false;
+async function refreshInventoryPrices(){
+  if(refreshing || !db || !CAT.manifest || !S.loaded.cards) return;
+  const built = CAT.manifest.builtAt;
+  const due = S.cards.filter(c => c.productId && !c.lock && !c.custom && (c.qty||0)>0 && (c.marketAt||0) < built && !refreshed.has(c.id+":"+built));
+  if(!due.length) return;
+  refreshing = true;
+  try {
+    const nb = CAT.manifest.priceBuckets || 32;
+    const buckets = {};
+    for(const b of [...new Set(due.map(c => c.productId % nb))]) buckets[b] = await getBucket(b);
+    let n = 0;
+    for(const c of due){
+      refreshed.add(c.id+":"+built);
+      const pr = (buckets[c.productId % nb] || {})[c.productId]; if(!pr) continue;
+      const nm = pr[c.sub] ?? Object.values(pr)[0]; if(nm == null) continue;
+      try { await db.collection("cards").doc(c.id).update({ nm:r2(nm), market:condPrice(nm, c.cond, c.vintage, c.kind), marketAt:built }); n++; } catch(e){ console.warn("price refresh", c.id, e); }
+    }
+    if(n) toast(`Updated market prices on ${n} card${n===1?"":"s"}`);
+  } catch(e){ console.warn("refresh prices", e); }
+  finally { refreshing = false; }
+}
+
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("on"),2200); }
+function banner(msg){ const b=$("#banner"); b.textContent=msg||""; b.classList.toggle("on",!!msg); }
+
+function openModal(html, mount){ $("#modal").innerHTML = html; $("#modal-bg").classList.add("on"); if(mount) mount($("#modal")); }
+function closeModal(){ $("#modal-bg").classList.remove("on"); $("#modal").innerHTML=""; }
+$("#modal-bg").addEventListener("click", e => { if(e.target.id==="modal-bg") closeModal(); });
+function ask(title, body, okText="Yes", danger=false){
+  return new Promise(res => {
+    openModal(`<h3>${esc(title)}</h3><p class="muted">${body}</p><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" data-x>Cancel</button><button class="btn ${danger?"danger":"primary"}" data-ok>${esc(okText)}</button></div>`, m => {
+      m.querySelector("[data-x]").onclick = () => { closeModal(); res(false); };
+      m.querySelector("[data-ok]").onclick = () => { closeModal(); res(true); };
+    });
+  });
+}
+function needDb(){ if(!db){ toast("Not connected to your saved data"); return false; } return true; }
+async function safe(fn, okMsg){
+  try { await fn(); if(okMsg) toast(okMsg); return true; }
+  catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "This account isn't allowed to save — check you're signed in as yourself" : "Couldn't save — try again"); return false; }
+}
+
+function pctButtons(el, list, cur, onPick){
+  el.innerHTML = list.map(p => `<button class="pct ${p===cur?"on":""}" data-p="${p}">${p}%</button>`).join("");
+  el.onclick = e => { const b=e.target.closest("[data-p]"); if(b) onPick(Number(b.dataset.p)); };
+}
+
+// ---------- tabs ----------
+const TABS = ["inventory","buy","sell","money"];
+function showTab(t){
+  if(!TABS.includes(t)) t = "inventory";
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.tab===t));
+  document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id==="v-"+t));
+}
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => { location.hash = b.dataset.tab; showTab(b.dataset.tab); });
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+
+// ---------- INVENTORY ----------
+function renderInventory(){
+  const inStock = S.cards.filter(c => (c.qty||0) > 0);
+  let units=0, cost=0, mkt=0;
+  inStock.forEach(c => { units+=c.qty; cost+=c.cost*c.qty; mkt+=(c.market||0)*c.qty; });
+  $("#inv-stats").innerHTML = `
+    <div class="stat"><div class="k">Cards in stock</div><div class="v">${units}</div></div>
+    <div class="stat"><div class="k">Paid for stock</div><div class="v">${money(cost)}</div></div>
+    <div class="stat"><div class="k">Market value</div><div class="v">${money(mkt)}</div></div>
+    <div class="stat"><div class="k">Potential profit</div><div class="v ${mkt-cost>=0?"good":"bad"}">${money(mkt-cost)}</div></div>`;
+
+  const q = $("#inv-search").value.trim().toLowerCase();
+  const showSold = $("#inv-sold").checked;
+  let list = S.cards.filter(c => (showSold || (c.qty||0)>0) && (!q || (c.name+" "+(c.set||"")).toLowerCase().includes(q)));
+  const sorts = {
+    recent:(a,b)=>(b.addedAt||0)-(a.addedAt||0),
+    name:(a,b)=>a.name.localeCompare(b.name),
+    value:(a,b)=>(b.market||0)*(b.qty||0)-(a.market||0)*(a.qty||0),
+    stale:(a,b)=>(a.marketAt||0)-(b.marketAt||0)
+  };
+  list.sort(sorts[ui.invSort]);
+  const el = $("#inv-list");
+  if(!list.length){ el.innerHTML = `<div class="empty">${S.cards.length? "No cards match." : "No cards yet. Add cards here, or complete a purchase on the Buy tab."}</div>`; return; }
+  el.innerHTML = list.map(c => {
+    const fl = floorOf(c.cost), sug = suggestedOf(c), prof = (c.market||0) - c.cost;
+    const pctP = c.cost>0 ? Math.round(prof/c.cost*100) : 0;
+    const stale = !c.custom && (!c.marketAt || (Date.now()-c.marketAt) > 14*86400000);
+    return `<div class="item tap" data-id="${c.id}">
+      <div><div class="name">${esc(c.name)}${(c.qty||0)>1?` <span class="muted">×${c.qty}</span>`:""}${!(c.qty>0)?` <span class="chip">sold</span>`:""}</div>
+        <div class="sub">${esc([c.kind&&c.kind!=="Card"?c.kind:"",c.set,c.sub,c.cond].filter(Boolean).join(" · "))}${c.vintage?" · vintage":""}</div></div>
+      <div class="right"><div class="muted" style="font-size:13px">Sell for</div><div class="price">${money(sug)}</div></div>
+      <div class="chips">
+        <span class="chip">Paid ${money(c.cost)}</span>
+        <span class="chip">${c.custom?"Value":"Market"} ${money(c.market)}</span>${c.custom?`<span class="chip warn">Custom</span>`:""}
+        <span class="chip">Min ${money(fl)}</span>
+        <span class="chip ${prof>=c.cost*minP()/100?"good":"bad"}">${prof>=0?"+":""}${money(prof)} (${pctP}%)</span>
+        ${stale?`<span class="chip warn">Price ${ago(c.marketAt)}</span>`:""}
+        ${c.productId?(c.lock?`<span class="chip">Your price</span>`:`<span class="chip">Auto price</span>`):""}
+        ${c.productId?`<a class="look" href="${productUrl(c.productId)}" target="_blank" rel="noopener" data-stop>TCGplayer ↗</a>`:""}
+      </div></div>`;
+  }).join("");
+}
+$("#inv-search").addEventListener("input", renderInventory);
+$("#inv-sold").addEventListener("change", renderInventory);
+$("#inv-sort").onclick = e => { const b=e.target.closest("[data-s]"); if(!b) return; ui.invSort=b.dataset.s; $("#inv-sort").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderInventory(); };
+$("#inv-list").onclick = e => { if(e.target.closest("[data-stop]")) return; const it=e.target.closest("[data-id]"); if(it) cardModal(S.cards.find(c=>c.id===it.dataset.id)); };
+$("#inv-add").onclick = () => cardModal(null);
+
+function cardModal(c){
+  const isNew = !c; c = c || {name:"",set:"",cond:"NM",qty:1,cost:"",market:"",kind:"Card",custom:false,vintage:false};
+  // working copy of the catalog link; saved only on Save
+  let link = c.productId ? { productId:c.productId, sub:c.sub||"", game:c.game||"", nm:c.nm ?? c.market } : null;
+  let lock = !!c.lock;
+  openModal(`<h3>${isNew?"Add card":"Edit card"}</h3>
+    <div id="cm-link"></div>
+    <div id="cm-find" style="display:none;margin-bottom:12px">
+      <div class="seg scroll" id="cm-game" style="margin-bottom:8px"></div>
+      <input id="cm-q" placeholder="Search the catalog…" autocomplete="off"><div class="cat-res" id="cm-res"></div>
+    </div>
+    <form class="grid g2" id="cm">
+      <div style="grid-column:1/-1"><label>Card name</label><input name="name" required value="${esc(c.name)}"></div>
+      <div><label>Set / number</label><input name="set" value="${esc(c.set)}"></div>
+      <div><label>Condition</label><select name="cond">${CONDS.map(x=>`<option ${x===c.cond?"selected":""}>${x}</option>`).join("")}</select></div>
+      <div><label>Type</label><select name="kind">${KINDS.map(x=>`<option ${x===(c.kind||"Card")?"selected":""}>${x}</option>`).join("")}</select></div>
+      <div style="align-self:end">
+        <label style="display:flex;gap:6px;align-items:center;margin:0 0 6px;font-size:15px;color:var(--ink)"><input type="checkbox" name="vintage" style="width:auto" ${c.vintage?"checked":""}> Vintage</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0 0 10px;font-size:15px;color:var(--ink)"><input type="checkbox" name="custom" style="width:auto" ${c.custom?"checked":""}> Not on TCGplayer</label></div>
+      <div><label>I paid (each) $</label><input name="cost" type="number" step="0.01" min="0" inputmode="decimal" required value="${c.cost}"></div>
+      <div><label id="cm-mlabel">${c.custom?"Your value $":"Market price $"}</label><input name="market" type="number" step="0.01" min="0" inputmode="decimal" required value="${c.market}"></div>
+      <div><label>Qty in stock</label><input name="qty" type="number" min="0" inputmode="numeric" value="${c.qty??1}"></div>
+      <div style="align-self:end"><a class="look" id="cm-look" target="_blank" rel="noopener"></a></div>
+      <div style="grid-column:1/-1" class="muted" id="cm-calc"></div>
+      <div style="grid-column:1/-1" class="row">
+        ${isNew?"":`<button type="button" class="btn danger" id="cm-del">Delete</button>`}
+        <span class="spacer"></span><button type="button" class="btn" id="cm-x">Cancel</button><button class="btn primary" type="submit">Save</button>
+      </div>
+    </form>`, m => {
+      const f = m.querySelector("#cm");
+      const calc = () => { const cost=Number(f.cost.value)||0, mk=Number(f.market.value)||0;
+        m.querySelector("#cm-calc").innerHTML = `Lowest price for ${minP()}% profit: <b>${money(floorOf(cost))}</b> · Suggested: <b>${money(Math.max(up2(mk),floorOf(cost)))}</b>`; };
+      const look = () => { const a=m.querySelector("#cm-look"); a.style.display = f.custom.checked ? "none" : "";
+        a.href = link ? productUrl(link.productId) : tcgUrl(f.name.value, f.set.value); a.textContent = link ? "Open on TCGplayer ↗" : "Check TCGplayer ↗"; };
+      const recalc = () => { if(link && link.nm && !lock && !f.custom.checked){ f.market.value = condPrice(link.nm, f.cond.value, f.vintage.checked, f.kind.value).toFixed(2); calc(); } };
+      const drawLink = () => {
+        const el = m.querySelector("#cm-link");
+        if(f.custom.checked){ el.innerHTML = ""; return; }
+        el.innerHTML = link
+          ? `<div class="picked"><b>Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}<br><span class="muted" style="font-weight:500;font-size:14px">NM market ${money(link.nm)} · ${lock?"you set your own price — nightly updates are off":"price updates nightly"}</span></b>
+              ${lock?`<button type="button" class="btn sm" id="cm-unlock">Use market price</button>`:""}<button type="button" class="btn sm" id="cm-unlink">Unlink</button></div>`
+          : `<div class="row" style="margin-bottom:10px"><button type="button" class="btn sm" id="cm-findbtn">Find in catalog</button><span class="muted" style="font-size:14px">Link this card so its price updates every night.</span></div>`;
+        const u=el.querySelector("#cm-unlock"); if(u) u.onclick = () => { lock=false; recalc(); drawLink(); };
+        const ul=el.querySelector("#cm-unlink"); if(ul) ul.onclick = () => { link=null; lock=false; drawLink(); look(); };
+        const fb=el.querySelector("#cm-findbtn"); if(fb) fb.onclick = () => { const box=m.querySelector("#cm-find"); box.style.display=""; const q=m.querySelector("#cm-q"); q.value=f.name.value; q.dispatchEvent(new Event("input")); q.focus(); };
+      };
+      mountCatSearch(m.querySelector("#cm-game"), m.querySelector("#cm-q"), m.querySelector("#cm-res"), p => {
+        link = { productId:p.productId, sub:p.sub, game:p.game, nm:p.nm }; lock = false;
+        if(!f.name.value.trim()) f.name.value = p.name;
+        f.set.value = setLabel(p); f.vintage.checked = isVintageYear(p.year);
+        m.querySelector("#cm-find").style.display = "none";
+        recalc(); drawLink(); look();
+      });
+      f.addEventListener("input", e => { if(e.target===f.market && link){ if(!lock){ lock=true; drawLink(); } } calc(); if(e.target===f.name||e.target===f.set) look(); });
+      ["cond","vintage","kind"].forEach(n => f[n].addEventListener("change", recalc));
+      calc(); look(); drawLink();
+      f.custom.addEventListener("change", () => { m.querySelector("#cm-mlabel").textContent = f.custom.checked ? "Your value $" : "Market price $"; if(f.custom.checked){ link=null; lock=false; } drawLink(); look(); });
+      m.querySelector("#cm-x").onclick = closeModal;
+      if(!isNew) m.querySelector("#cm-del").onclick = async () => {
+        if(!(await ask("Delete card?", `Remove <b>${esc(c.name)}</b> from inventory? Sales already recorded are kept.`, "Delete", true))) return;
+        if(needDb()) safe(() => db.collection("cards").doc(c.id).delete(), "Card deleted");
+      };
+      f.onsubmit = async e => { e.preventDefault(); if(!needDb()) return;
+        const newMarket = r2(f.market.value);
+        const data = { name:f.name.value.trim(), set:f.set.value.trim(), cond:f.cond.value, kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, cost:r2(f.cost.value), market:newMarket, qty:Math.max(0,parseInt(f.qty.value)||0) };
+        if(link){ Object.assign(data, { productId:link.productId, sub:link.sub, game:link.game, nm:r2(link.nm), lock }); }
+        else if(!isNew && c.productId){ Object.assign(data, { productId:null, sub:null, game:null, nm:null, lock:false }); }
+        if(isNew || newMarket !== c.market) data.marketAt = Date.now();
+        closeModal();
+        if(isNew) await safe(() => db.collection("cards").doc().set({...data, addedAt:Date.now(), marketAt:Date.now()}), "Card added");
+        else await safe(() => db.collection("cards").doc(c.id).update(data), "Saved");
+      };
+    });
+}
+
+// ---------- BUY ----------
+$("#b-cond").innerHTML = CONDS.map(x=>`<option>${x}</option>`).join("");
+$("#b-kind").innerHTML = KINDS.map(x=>`<option>${x}</option>`).join("");
+$("#b-custom").addEventListener("change", () => { const on=$("#b-custom").checked; $("#b-mlabel").textContent = on ? "Your value $" : "Market $"; if(on) clearPick(); updLook(); });
+const savedBuy = lsGet("cd-buy"); if(savedBuy && Array.isArray(savedBuy.items)){ buy.items = savedBuy.items; if(BUY_PCTS.includes(savedBuy.pct)) buy.pct = savedBuy.pct; }
+const saveBuyDraft = () => lsSet("cd-buy", { items:buy.items, pct:buy.pct });
+const updLook = () => {
+  const a=$("#b-look"); a.style.display = $("#b-custom").checked ? "none" : "";
+  if(buy.pick){ a.href = productUrl(buy.pick.productId); a.textContent = "Open on TCGplayer ↗"; }
+  else { a.href = tcgUrl($("#b-name").value.trim(), $("#b-set").value.trim()); a.textContent = "Look up on TCGplayer ↗"; }
+};
+$("#b-name").addEventListener("input", updLook); $("#b-set").addEventListener("input", updLook);
+
+// catalog pick → fill the form; condition / vintage / type recompute the market unless a price was typed
+buy.pick = null; buy.typed = false;
+function renderPicked(){
+  const p = buy.pick, el = $("#b-picked");
+  el.innerHTML = p ? `<div class="picked"><b>${esc(p.name)}<br><span class="muted" style="font-weight:500;font-size:14px">${esc([setLabel(p), p.sub].filter(Boolean).join(" · "))} · ${p.nm?"NM "+money(p.nm):"no TCGplayer price — type your own"}${buy.typed?" · your price":""}</span></b>
+    <button type="button" class="btn sm" id="b-unpick">Clear</button></div>` : "";
+  const u = $("#b-unpick"); if(u) u.onclick = () => { clearPick(); $("#b-name").value=""; $("#b-set").value=""; $("#b-market").value=""; updLook(); $("#cat-q").focus(); };
+}
+function recalcBuy(){
+  if(!buy.pick || buy.typed) return;
+  if(!buy.pick.nm){ $("#b-market").value = ""; return; }
+  $("#b-market").value = condPrice(buy.pick.nm, $("#b-cond").value, $("#b-vintage").checked, $("#b-kind").value).toFixed(2);
+}
+function clearPick(){ buy.pick = null; buy.typed = false; renderPicked(); }
+["#b-cond","#b-vintage","#b-kind"].forEach(s => $(s).addEventListener("change", recalcBuy));
+$("#b-market").addEventListener("input", () => { if(buy.pick){ buy.typed = true; renderPicked(); } });
+const buySearch = mountCatSearch($("#cat-game"), $("#cat-q"), $("#cat-res"), p => {
+  buy.pick = { productId:p.productId, sub:p.sub, nm:p.nm, game:p.game, year:p.year, name:p.name, setName:p.setName, number:p.number };
+  buy.typed = false;
+  $("#b-name").value = p.name; $("#b-set").value = setLabel(p);
+  $("#b-vintage").checked = isVintageYear(p.year);
+  $("#b-kind").value = (!p.number && !p.rarity) ? "Sealed" : "Card";
+  if($("#b-custom").checked){ $("#b-custom").checked=false; $("#b-mlabel").textContent="Market $"; }
+  recalcBuy(); renderPicked(); updLook(); buySearch.clear();
+  $("#b-cond").focus();
+});
+
+$("#buy-form").onsubmit = e => {
+  e.preventDefault();
+  const p = buy.pick;
+  buy.items.push({ key:Math.random().toString(36).slice(2), name:$("#b-name").value.trim(), set:$("#b-set").value.trim(), cond:$("#b-cond").value, market:r2($("#b-market").value), qty:Math.max(1,parseInt($("#b-qty").value)||1), kind:$("#b-kind").value, custom:$("#b-custom").checked, vintage:$("#b-vintage").checked,
+    ...(p ? { productId:p.productId, sub:p.sub, game:p.game, nm:p.nm, lock:buy.typed } : {}) });
+  $("#b-name").value=""; $("#b-set").value=""; $("#b-market").value=""; $("#b-qty").value=1; $("#b-cond").value="NM"; $("#b-kind").value="Card"; $("#b-vintage").checked=false;
+  if($("#b-custom").checked){ $("#b-custom").checked=false; $("#b-mlabel").textContent="Market $"; }
+  clearPick(); updLook();
+  $("#cat-q").focus(); saveBuyDraft(); renderBuy();
+};
+function renderBuy(){
+  pctButtons($("#buy-pcts"), BUY_PCTS, buy.pct, p => { buy.pct=p; saveBuyDraft(); renderBuy(); });
+  const el = $("#buy-list");
+  let mkt=0, pay=0, units=0;
+  el.innerHTML = buy.items.length ? buy.items.map((it,i) => {
+    const each = r2(it.market*buy.pct/100); mkt+=it.market*it.qty; pay+=each*it.qty; units+=it.qty;
+    return `<div class="item"><div><div class="name">${esc(it.name)}</div><div class="sub">${esc([it.kind&&it.kind!=="Card"?it.kind:"",it.set,it.sub,it.cond].filter(Boolean).join(" · "))} · ${it.custom?"your value":"market"} ${money(it.market)}${it.custom?` <span class="chip warn">Custom</span>`:""}${it.vintage?` <span class="chip">vintage</span>`:""}${it.productId?` <a class="look" href="${productUrl(it.productId)}" target="_blank" rel="noopener">TCGplayer ↗</a>`:""}</div></div>
+      <div class="right"><div class="muted" style="font-size:13px">Pay each</div><div class="price">${money(each)}</div></div>
+      <div class="chips" style="align-items:center"><span class="qty"><button data-q="-1" data-i="${i}">−</button><b>${it.qty}</b><button data-q="1" data-i="${i}">+</button></span>
+      <span class="spacer"></span><button class="btn sm danger" data-rm="${i}">Remove</button></div></div>`;
+  }).join("") : `<div class="empty">Your buy list is empty. Add cards above.</div>`;
+  $("#buy-totals").innerHTML = `
+    <div class="total"><span class="muted">${units} card${units===1?"":"s"} · market value</span><b>${money(mkt)}</b></div>
+    <div class="total"><span>Your offer at <b>${buy.pct}%</b></span><span class="big">${money(pay)}</span></div>
+    <div class="grid g2" style="margin:10px 0"><div><label>Seller (optional)</label><input id="buy-seller"></div><div><label>Paid with</label><select id="buy-method"><option>Cash</option><option>Card / digital</option><option>Trade credit</option><option>Other</option></select></div></div>
+    <button class="btn go" id="buy-go" ${buy.items.length?"":"disabled"}>Complete purchase · ${money(pay)}</button>
+    ${buy.items.length?`<div style="text-align:center;margin-top:8px"><button class="btn sm" id="buy-clear">Clear list</button></div>`:""}`;
+  $("#buy-go").onclick = completePurchase;
+  const cl=$("#buy-clear"); if(cl) cl.onclick = async () => { if(await ask("Clear buy list?","This removes every card from the list.","Clear",true)){ buy.items=[]; saveBuyDraft(); renderBuy(); } };
+}
+$("#buy-list").onclick = e => {
+  const q=e.target.closest("[data-q]"), rm=e.target.closest("[data-rm]");
+  if(q){ const it=buy.items[q.dataset.i]; it.qty=Math.max(1,it.qty+Number(q.dataset.q)); }
+  else if(rm){ buy.items.splice(Number(rm.dataset.rm),1); } else return;
+  saveBuyDraft(); renderBuy();
+};
+async function completePurchase(){
+  if(!needDb() || !buy.items.length) return;
+  const pct = buy.pct, now = Date.now();
+  const cat = it => it.productId ? { productId:it.productId, sub:it.sub||"", game:it.game||"", nm:r2(it.nm), lock:!!it.lock } : {};
+  const items = buy.items.map(it => ({ name:it.name, set:it.set, cond:it.cond, market:it.market, qty:it.qty, each:r2(it.market*pct/100), kind:it.kind||"Card", custom:!!it.custom, vintage:!!it.vintage, ...cat(it) }));
+  const totalMarket = r2(items.reduce((s,i)=>s+i.market*i.qty,0));
+  const totalPaid = r2(items.reduce((s,i)=>s+i.each*i.qty,0));
+  if(!(await ask("Complete purchase?", `Pay <b>${money(totalPaid)}</b> for ${items.reduce((s,i)=>s+i.qty,0)} cards (${pct}% of ${money(totalMarket)}). They'll be added to your inventory.`, "Complete"))) return;
+  const seller = ($("#buy-seller")||{}).value||"", method = ($("#buy-method")||{}).value||"";
+  const btn=$("#buy-go"); if(btn) btn.disabled = true;
+  const ok = await safe(async () => {
+    const pref = db.collection("purchases").doc();
+    await pref.set({ at:now, pct, seller, method, items, totalMarket, totalPaid });
+    for(const it of items){
+      await db.collection("cards").doc().set({ name:it.name, set:it.set, cond:it.cond, kind:it.kind, custom:it.custom, vintage:it.vintage, qty:it.qty, cost:it.each, market:it.market, marketAt:now, addedAt:now, purchaseId:pref.id,
+        ...(it.productId ? { productId:it.productId, sub:it.sub, game:it.game, nm:it.nm, lock:it.lock } : {}) });
+    }
+  }, "Purchase saved — cards added to inventory");
+  if(ok){ buy.items=[]; saveBuyDraft(); }
+  renderBuy();
+}
+
+// ---------- SELL ----------
+$("#sell-search").addEventListener("input", renderSellResults);
+function renderSellResults(){
+  const q = $("#sell-search").value.trim().toLowerCase(), el=$("#sell-results");
+  if(!q){ el.innerHTML=""; return; }
+  const res = S.cards.filter(c => c.qty>0 && (c.name+" "+(c.set||"")).toLowerCase().includes(q)).slice(0,8);
+  el.innerHTML = res.length ? res.map(c => `<div class="item tap" data-add="${c.id}"><div><div class="name">${esc(c.name)} <span class="muted">×${c.qty}</span></div><div class="sub">${esc([c.set,c.cond].filter(Boolean).join(" · "))} · paid ${money(c.cost)}</div></div><div class="right"><div class="muted" style="font-size:13px">Market</div><div class="price">${money(c.market)}</div></div></div>`).join("") : `<div class="empty">No matching cards in stock.</div>`;
+}
+$("#sell-results").onclick = e => {
+  const it=e.target.closest("[data-add]"); if(!it) return;
+  const c=S.cards.find(x=>x.id===it.dataset.add); if(!c) return;
+  const line = sell.items.find(l=>l.cardId===c.id);
+  if(line){ if(line.qty < c.qty) line.qty++; else toast("That's all you have in stock"); }
+  else sell.items.push({ cardId:c.id, qty:1, price:null });
+  $("#sell-search").value=""; renderSellResults(); renderSell(); $("#sell-search").focus();
+};
+function lineCard(l){ return l.adhoc ? { id:null, name:l.name, set:"", cond:"", cost:l.cost, market:l.mkt, qty:999, adhoc:true } : S.cards.find(x=>x.id===l.cardId); }
+$("#sell-adhoc").onclick = () => {
+  openModal(`<h3>Sell an item not in inventory</h3><p class="muted">For anything you never entered: a binder card, an accessory, a one-off.</p>
+    <form id="ah" class="grid g2"><div style="grid-column:1/-1"><label>Item name</label><input name="name" required></div>
+    <div><label>Selling price $</label><input name="price" type="number" step="0.01" min="0" inputmode="decimal" required></div>
+    <div><label>What you paid $ (optional)</label><input name="cost" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></div>
+    <div style="grid-column:1/-1" class="row"><span class="spacer"></span><button type="button" class="btn" id="ah-x">Cancel</button><button class="btn primary">Add to sale</button></div></form>`, m => {
+      const f=m.querySelector("#ah"); f.name.focus();
+      m.querySelector("#ah-x").onclick = closeModal;
+      f.onsubmit = e => { e.preventDefault(); const pr=r2(f.price.value); sell.items.push({ adhoc:true, name:f.name.value.trim(), cost:r2(f.cost.value), mkt:pr, price:pr, qty:1 }); closeModal(); renderSell(); };
+    });
+};
+function sellLinePrice(l, c){ return l.price!=null ? l.price : r2((c.market||0)*sell.pct/100); }
+function renderSell(){
+  pctButtons($("#sell-pcts"), SELL_PCTS, sell.pct, p => { sell.pct=p; renderSell(); });
+  $("#sell-floor-note").textContent = `Red price = below your ${minP()}% minimum profit. Tap a price to type your own.`;
+  sell.items = sell.items.filter(l => l.adhoc || S.cards.some(c=>c.id===l.cardId));
+  let total=0, cost=0, units=0, below=0;
+  const el=$("#sell-list");
+  el.innerHTML = sell.items.length ? sell.items.map((l,i) => {
+    const c=lineCard(l); const p=sellLinePrice(l,c), fl=floorOf(c.cost), low=p<fl;
+    total+=p*l.qty; cost+=c.cost*l.qty; units+=l.qty; if(low) below++;
+    return `<div class="item"><div><div class="name">${esc(c.name)}</div><div class="sub">${c.adhoc?`<span class="chip warn">Not in inventory</span> · `:esc([c.set,c.cond].filter(Boolean).join(" · "))+" · market "+money(c.market)+" · "}paid ${money(c.cost)}</div></div>
+      <div class="right"><div class="muted" style="font-size:13px">${l.price!=null?"Your price":"Price each"}</div><button class="price ${low?"bad":""}" data-edit="${i}" style="border:0;background:none;padding:0;cursor:pointer;text-decoration:underline dotted">${money(p)}</button></div>
+      <div class="chips" style="align-items:center"><span class="qty"><button data-q="-1" data-i="${i}">−</button><b>${l.qty}</b><button data-q="1" data-i="${i}">+</button></span>
+      <span class="chip ${low?"bad":""}">Min ${money(fl)}</span><span class="chip ${p-c.cost>=0?"good":"bad"}">Profit ${money((p-c.cost)*l.qty)}</span>
+      <span class="spacer"></span><button class="btn sm danger" data-rm="${i}">Remove</button></div></div>`;
+  }).join("") : `<div class="empty">Search above and tap a card to add it to this sale.</div>`;
+  const profit = total-cost;
+  $("#sell-totals").innerHTML = `
+    <div class="total"><span class="muted">${units} card${units===1?"":"s"} · you paid</span><b>${money(cost)}</b></div>
+    <div class="total"><span>Profit</span><b class="${profit>=0?"good":"bad"}">${money(profit)}${cost>0?` (${Math.round(profit/cost*100)}%)`:""}</b></div>
+    <div class="total"><span>Customer pays</span><span class="big">${money(total)}</span></div>
+    ${below?`<div class="chip bad" style="display:block;margin:8px 0;padding:8px 10px">${below} card${below===1?" is":"s are"} below your ${minP()}% minimum</div>`:""}
+    <div class="grid g2" style="margin:10px 0"><div><label>Buyer (optional)</label><input id="sell-buyer"></div><div><label>Paid with</label><select id="sell-method"><option>Cash</option><option>Card / digital</option><option>Trade credit</option><option>Other</option></select></div></div>
+    <button class="btn go" id="sell-go" ${sell.items.length?"":"disabled"}>Complete sale · ${money(total)}</button>`;
+  $("#sell-go").onclick = completeSale;
+}
+$("#sell-list").onclick = e => {
+  const q=e.target.closest("[data-q]"), rm=e.target.closest("[data-rm]"), ed=e.target.closest("[data-edit]");
+  if(q){ const l=sell.items[q.dataset.i], c=lineCard(l); l.qty=Math.min(c.qty, Math.max(1,l.qty+Number(q.dataset.q))); renderSell(); }
+  else if(rm){ sell.items.splice(Number(rm.dataset.rm),1); renderSell(); }
+  else if(ed){ const l=sell.items[ed.dataset.edit], c=lineCard(l);
+    openModal(`<h3>Price for ${esc(c.name)}</h3><p class="muted">Market ${money(c.market)} · Minimum ${money(floorOf(c.cost))}</p>
+      <form id="pf"><label>Price each $</label><input id="pf-v" type="number" step="0.01" min="0" inputmode="decimal" value="${sellLinePrice(l,c)}">
+      <div class="row" style="margin-top:14px"><button type="button" class="btn" id="pf-reset">Use ${sell.pct}% of market</button><span class="spacer"></span><button class="btn primary">Set price</button></div></form>`, m => {
+        const inp=m.querySelector("#pf-v"); inp.focus(); inp.select();
+        m.querySelector("#pf-reset").onclick = () => { l.price=null; closeModal(); renderSell(); };
+        m.querySelector("#pf").onsubmit = ev => { ev.preventDefault(); l.price=r2(inp.value); closeModal(); renderSell(); };
+      });
+  }
+};
+async function completeSale(){
+  if(!needDb() || !sell.items.length) return;
+  const now=Date.now();
+  const items = sell.items.map(l => { const c=lineCard(l); return { cardId:c.id, name:c.name, set:c.set||"", cond:c.cond||"", qty:l.qty, cost:c.cost, market:c.market||0, price:sellLinePrice(l,c) }; });
+  const total=r2(items.reduce((s,i)=>s+i.price*i.qty,0)), cost=r2(items.reduce((s,i)=>s+i.cost*i.qty,0));
+  if(!(await ask("Complete sale?", `Customer pays <b>${money(total)}</b>. Your profit: <b>${money(total-cost)}</b>.`, "Complete"))) return;
+  const buyer=($("#sell-buyer")||{}).value||"", method=($("#sell-method")||{}).value||"";
+  const btn=$("#sell-go"); if(btn) btn.disabled=true;
+  const ok = await safe(async () => {
+    await db.collection("sales").doc().set({ at:now, pct:sell.pct, buyer, method, items, total, cost, profit:r2(total-cost) });
+    for(const it of items){ const c=S.cards.find(x=>x.id===it.cardId); if(c) await db.collection("cards").doc(c.id).update({ qty:Math.max(0,(c.qty||0)-it.qty), lastSoldAt:now }); }
+  }, "Sale saved");
+  if(ok) sell.items=[];
+  renderSell();
+}
+
+// ---------- MONEY ----------
+$("#e-date").value = todayISO();
+$("#exp-form").onsubmit = async e => {
+  e.preventDefault(); if(!needDb()) return;
+  const d = $("#e-date").value || todayISO();
+  const at = new Date(d+"T12:00:00").getTime();
+  const ok = await safe(() => db.collection("expenses").doc().set({ at, date:d, desc:$("#e-desc").value.trim(), cat:$("#e-cat").value, amount:r2($("#e-amt").value) }), "Expense added");
+  if(ok){ $("#e-desc").value=""; $("#e-amt").value=""; }
+};
+$("#m-period").onclick = e => { const b=e.target.closest("[data-p]"); if(!b) return; ui.period=b.dataset.p; $("#m-period").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderMoney(); };
+$("#m-act").onclick = e => { const b=e.target.closest("[data-a]"); if(!b) return; ui.act=b.dataset.a; $("#m-act").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderActivity(); };
+function drawCondTable(){
+  const m = condTable(false), v = condTable(true), cs = ["LP","MP","HP","DMG"];
+  $("#cond-table").innerHTML = `<table class="ctab"><thead><tr><th></th>${cs.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>
+    <tr><th style="text-align:left">Modern</th>${cs.map(c=>`<td><input type="number" min="0" max="100" step="1" inputmode="numeric" data-t="m" data-c="${c}" value="${m[c]}"></td>`).join("")}</tr>
+    <tr><th style="text-align:left">Vintage</th>${cs.map(c=>`<td><input type="number" min="0" max="100" step="1" inputmode="numeric" data-t="v" data-c="${c}" value="${v[c]}"></td>`).join("")}</tr></tbody></table>`;
+  $("#set-vyear").value = vYear();
+}
+$("#cond-reset").onclick = () => {
+  document.querySelectorAll("#cond-table input").forEach(i => { i.value = (i.dataset.t==="v"?COND_DEF.vintage:COND_DEF.modern)[i.dataset.c]; });
+  $("#set-vyear").value = COND_DEF.vintageYear;
+};
+$("#cond-save").onclick = async () => {
+  if(!needDb()) return;
+  const condModern = {}, condVintage = {};
+  document.querySelectorAll("#cond-table input").forEach(i => { const n = Math.min(100, Math.max(0, Math.round(Number(i.value)||0))); (i.dataset.t==="v"?condVintage:condModern)[i.dataset.c] = n; });
+  const vintageYear = Math.round(Number($("#set-vyear").value)) || COND_DEF.vintageYear;
+  const ok = await safe(() => db.doc("settings/main").set({ ...S.settings, condModern, condVintage, vintageYear }), "Condition pricing saved");
+  if(ok) repriceByCondition({ ...S.settings, condModern, condVintage, vintageYear });
+};
+// after the tables change, re-price linked, unlocked, non-NM cards in stock
+async function repriceByCondition(st){
+  const saved = S.settings; S.settings = st;
+  const todo = S.cards.filter(c => c.productId && !c.lock && !c.custom && (c.qty||0)>0 && c.nm!=null)
+    .map(c => [c, condPrice(c.nm, c.cond, c.vintage, c.kind)]).filter(([c,p]) => p !== r2(c.market));
+  S.settings = saved;
+  let n = 0;
+  for(const [c,p] of todo){ try { await db.collection("cards").doc(c.id).update({ market:p }); n++; } catch(e){ console.warn(e); } }
+  if(n) toast(`Re-priced ${n} card${n===1?"":"s"} for the new condition %`);
+}
+$("#set-save").onclick = async () => { if(!needDb()) return; const v=Math.max(0,Number($("#set-min").value)||0); await safe(() => db.doc("settings/main").set({ ...S.settings, minProfit:v }), "Minimum profit set to "+v+"%"); };
+
+function periodRange(p){
+  const n=new Date();
+  if(p==="month") return [new Date(n.getFullYear(),n.getMonth(),1).getTime(), Infinity];
+  if(p==="last") return [new Date(n.getFullYear(),n.getMonth()-1,1).getTime(), new Date(n.getFullYear(),n.getMonth(),1).getTime()];
+  if(p==="year") return [new Date(n.getFullYear(),0,1).getTime(), Infinity];
+  return [0, Infinity];
+}
+function sums(from,to){
+  const inR = x => x.at>=from && x.at<to;
+  const sales=S.sales.filter(inR), pur=S.purchases.filter(inR), exp=S.expenses.filter(inR);
+  const rev=sales.reduce((s,x)=>s+(x.total||0),0), cogs=sales.reduce((s,x)=>s+(x.cost||0),0);
+  const ex=exp.reduce((s,x)=>s+(x.amount||0),0), bought=pur.reduce((s,x)=>s+(x.totalPaid||0),0);
+  return { rev, cogs, gross:rev-cogs, ex, net:rev-cogs-ex, bought, cash:rev-bought-ex, nSales:sales.length };
+}
+function renderMoney(){
+  $("#set-min").value = minP();
+  if(!document.activeElement || !document.activeElement.closest("#cond-table, #set-vyear")) drawCondTable();
+  renderCatStatus();
+  const [f,t]=periodRange(ui.period), s=sums(f,t);
+  $("#m-stats").innerHTML = `
+    <div class="stat"><div class="k">Sales (${s.nSales})</div><div class="v">${money(s.rev)}</div></div>
+    <div class="stat"><div class="k">Profit on cards sold</div><div class="v ${s.gross>=0?"good":"bad"}">${money(s.gross)}</div></div>
+    <div class="stat"><div class="k">Expenses</div><div class="v">${money(s.ex)}</div></div>
+    <div class="stat" style="border-color:var(--accent)"><div class="k">Net profit</div><div class="v ${s.net>=0?"good":"bad"}">${money(s.net)}</div></div>
+    <div class="stat"><div class="k">Spent buying cards</div><div class="v">${money(s.bought)}</div></div>
+    <div class="stat"><div class="k">Cash in − cash out</div><div class="v ${s.cash>=0?"good":"bad"}">${money(s.cash)}</div></div>`;
+  // monthly table (last 12 months with activity)
+  const n=new Date(), rows=[];
+  for(let i=0;i<12;i++){
+    const a=new Date(n.getFullYear(),n.getMonth()-i,1), b=new Date(n.getFullYear(),n.getMonth()-i+1,1);
+    const m=sums(a.getTime(),b.getTime());
+    if(i===0 || m.rev||m.ex||m.bought) rows.push(`<tr><td>${a.toLocaleDateString(undefined,{month:"short",year:"numeric"})}</td><td>${money(m.rev)}</td><td>${money(m.gross)}</td><td>${money(m.ex)}</td><td class="${m.net>=0?"good":"bad"}"><b>${money(m.net)}</b></td><td>${money(m.bought)}</td></tr>`);
+  }
+  $("#m-months").innerHTML = `<table><thead><tr><th>Month</th><th>Sales</th><th>Card profit</th><th>Expenses</th><th>Net</th><th>Bought</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
+  renderActivity();
+}
+function renderActivity(){
+  const el=$("#m-activity"); let html="";
+  if(ui.act==="sales"){
+    const l=[...S.sales].sort((a,b)=>b.at-a.at).slice(0,50);
+    html = l.map(x=>`<div class="item"><div><div class="name">${money(x.total)} <span class="muted" style="font-weight:500;font-size:15px">· ${(x.items||[]).reduce((s,i)=>s+i.qty,0)} cards</span></div>
+      <div class="sub">${dayStr(x.at)}${x.buyer?" · "+esc(x.buyer):""}${x.method?" · "+esc(x.method):""}</div><div class="sub">${esc((x.items||[]).map(i=>i.name+(i.qty>1?" ×"+i.qty:"")).join(", "))}</div></div>
+      <div class="right"><div class="${x.profit>=0?"good":"bad"}" style="font-weight:750">${x.profit>=0?"+":""}${money(x.profit)}</div><button class="btn sm danger" data-undo-sale="${x.id}" style="margin-top:6px">Undo</button></div></div>`).join("");
+  } else if(ui.act==="purchases"){
+    const l=[...S.purchases].sort((a,b)=>b.at-a.at).slice(0,50);
+    html = l.map(x=>`<div class="item"><div><div class="name">${money(x.totalPaid)} <span class="muted" style="font-weight:500;font-size:15px">· ${x.pct}% of ${money(x.totalMarket)}</span></div>
+      <div class="sub">${dayStr(x.at)}${x.seller?" · "+esc(x.seller):""}${x.method?" · "+esc(x.method):""}</div><div class="sub">${esc((x.items||[]).map(i=>i.name+(i.qty>1?" ×"+i.qty:"")).join(", "))}</div></div>
+      <div class="right"><button class="btn sm danger" data-del-pur="${x.id}">Delete</button></div></div>`).join("");
+  } else {
+    const l=[...S.expenses].sort((a,b)=>b.at-a.at).slice(0,100);
+    html = l.map(x=>`<div class="item"><div><div class="name">${money(x.amount)}</div><div class="sub">${esc(x.desc)} · ${esc(x.cat)} · ${dayStr(x.at)}</div></div>
+      <div class="right"><button class="btn sm danger" data-del-exp="${x.id}">Delete</button></div></div>`).join("");
+  }
+  el.innerHTML = html || `<div class="empty">Nothing here yet.</div>`;
+}
+$("#m-activity").onclick = async e => {
+  const us=e.target.closest("[data-undo-sale]"), dp=e.target.closest("[data-del-pur]"), de=e.target.closest("[data-del-exp]");
+  if(!needDb()) return;
+  if(us){ const s=S.sales.find(x=>x.id===us.dataset.undoSale); if(!s) return;
+    if(!(await ask("Undo this sale?", `Delete the ${money(s.total)} sale and put its cards back in inventory.`, "Undo sale", true))) return;
+    await safe(async () => {
+      for(const it of s.items||[]){ if(!it.cardId) continue; const c=S.cards.find(x=>x.id===it.cardId);
+        if(c) await db.collection("cards").doc(c.id).update({ qty:(c.qty||0)+it.qty });
+        else await db.collection("cards").doc().set({ name:it.name, set:it.set, cond:it.cond, qty:it.qty, cost:it.cost, market:it.market, marketAt:Date.now(), addedAt:Date.now() });
+      }
+      await db.collection("sales").doc(s.id).delete();
+    }, "Sale undone");
+  }
+  if(dp){ const p=S.purchases.find(x=>x.id===dp.dataset.delPur); if(!p) return;
+    const cards=S.cards.filter(c=>c.purchaseId===p.id && c.qty>0);
+    if(!(await ask("Delete this purchase?", `Removes the ${money(p.totalPaid)} purchase record${cards.length?` and its ${cards.length} card line${cards.length===1?"":"s"} still in inventory`:""}. Sales already made are kept.`, "Delete", true))) return;
+    await safe(async () => { for(const c of cards) await db.collection("cards").doc(c.id).delete(); await db.collection("purchases").doc(p.id).delete(); }, "Purchase deleted");
+  }
+  if(de){ const x=S.expenses.find(y=>y.id===de.dataset.delExp); if(!x) return;
+    if(!(await ask("Delete expense?", `${money(x.amount)} · ${esc(x.desc)}`, "Delete", true))) return;
+    await safe(() => db.collection("expenses").doc(x.id).delete(), "Expense deleted");
+  }
+};
+
+// ---------- render all ----------
+function renderAll(){ renderInventory(); renderBuy(); renderSellResults(); renderSell(); renderMoney(); }
+
+// ---------- data (Firebase: Google sign-in + Firestore with offline cache) ----------
+const COLS = ["cards","purchases","sales","expenses"];
+const fbApp = F.initializeApp(FIREBASE);
+const auth = F.getAuth(fbApp);
+let fs = null;
+try { fs = F.initializeFirestore(fbApp, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
+catch(e){ console.warn("offline cache unavailable", e); fs = F.initializeFirestore(fbApp, {}); }
+
+// Writes apply on this device at once and sync when online. Don't make the
+// screen wait for the server: settle after a moment, report late failures.
+function settle(p){
+  p.catch(e => { console.error(e); toast(e && e.code==="permission-denied" ? "A change was refused — check you're signed in as yourself" : "A change couldn't sync — check your connection"); });
+  return Promise.race([p, new Promise(r => setTimeout(r, 1200))]);
+}
+const wrapRef = ref => ({ id:ref.id, set:d=>settle(F.setDoc(ref,d)), update:d=>settle(F.updateDoc(ref,d)), delete:()=>settle(F.deleteDoc(ref)) });
+const makeDb = () => ({
+  collection: name => ({
+    onSnapshot: (cb, err) => F.onSnapshot(F.collection(fs,name), { includeMetadataChanges:true }, s => cb({ metadata:s.metadata, docs:s.docs }), err),
+    doc: id => wrapRef(id ? F.doc(fs,name,id) : F.doc(F.collection(fs,name)))
+  }),
+  doc: path => { const ref = F.doc(fs, path); return { ...wrapRef(ref), onSnapshot:(cb,err) => F.onSnapshot(ref, d => cb({ exists:d.exists(), data:()=>d.data() }), err) }; }
+});
+
+const gate = $("#gate"), gmsg = $("#gate-msg"), gbtn = $("#gate-btn"), gout = $("#gate-out");
+function showGate(msg, canSignIn, canSwitch){ gate.classList.add("on"); gmsg.innerHTML = msg; gbtn.style.display = canSignIn ? "" : "none"; gout.style.display = canSwitch ? "" : "none"; }
+gbtn.onclick = async () => {
+  const pr = new F.GoogleAuthProvider(); pr.setCustomParameters({ prompt:"select_account" });
+  try { await F.signInWithPopup(auth, pr); }
+  catch(e){
+    if(e && (e.code==="auth/popup-blocked" || e.code==="auth/operation-not-supported-in-this-environment")) return F.signInWithRedirect(auth, pr);
+    if(e && e.code==="auth/unauthorized-domain") return showGate("This web address isn't approved for sign-in yet. Add it under Firebase → Authentication → Settings → Authorized domains.", true);
+    if(e && e.code!=="auth/popup-closed-by-user" && e.code!=="auth/cancelled-popup-request") showGate("Sign-in didn't work: "+esc(e.code||e.message)+". Try again.", true);
+  }
+};
+const doSignOut = async () => { try { await F.signOut(auth); } catch(e){} location.reload(); };
+gout.onclick = doSignOut; $("#sign-out").onclick = async () => { if(await ask("Sign out?","You'll need to sign in with Google again to use Card Desk on this device.","Sign out",true)) doSignOut(); };
+F.getRedirectResult(auth).catch(e => console.warn(e));
+
+let started = false;
+F.onAuthStateChanged(auth, user => {
+  if(!user){ db = null; showGate("Sign in to open your inventory.", true); return; }
+  $("#acct").textContent = "Signed in as " + (user.email || user.displayName || "you") + ".";
+  gate.classList.remove("on");
+  if(!started){ started = true; connect(user); }
+});
+
+function denied(user){
+  showGate(`You're signed in as <b>${esc(user.email||"")}</b>, which doesn't have access to this Card Desk.`, false, true);
+}
+function connect(user){
+  db = makeDb();
+  let timer = setTimeout(() => { if(navigator.onLine) banner("Still loading your data… If this doesn't clear, check your connection and reload."); }, 10000);
+  const pending = new Set(COLS);
+  const onErr = e => { console.error(e); clearTimeout(timer); if(e && e.code==="permission-denied") denied(user); else banner("Lost connection to your saved data. Reload the page to reconnect."); };
+  for(const name of COLS){
+    db.collection(name).onSnapshot(snap => {
+      S[name] = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+      S.loaded[name] = true;
+      if(pending.delete(name) && !pending.size){ clearTimeout(timer); banner(""); }
+      renderAll();
+      if(name==="cards") refreshInventoryPrices();
+    }, onErr);
+  }
+  db.doc("settings/main").onSnapshot(d => { if(d.exists) S.settings = { minProfit:10, ...d.data() }; renderAll(); }, onErr);
+}
+
+// offline indicator
+const net = () => $("#net").classList.toggle("on", !navigator.onLine);
+addEventListener("online", net); addEventListener("offline", net); net();
+
+// backup: download everything as one JSON file; restore writes the same ids back
+$("#bk-down").onclick = () => {
+  if(!needDb()) return;
+  const data = { app:"card-desk", version:1, exportedAt:Date.now(), settings:S.settings };
+  for(const c of COLS) data[c] = S[c];
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type:"application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "card-desk-backup-" + todayISO() + ".json";
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+$("#bk-up").onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ""; if(!f || !needDb()) return;
+  let data; try { data = JSON.parse(await f.text()); } catch(err){ toast("That file isn't a Card Desk backup"); return; }
+  if(!data || data.app !== "card-desk"){ toast("That file isn't a Card Desk backup"); return; }
+  const n = COLS.reduce((s,c) => s + ((data[c]||[]).length), 0);
+  if(!(await ask("Restore backup?", `Adds or overwrites ${n} records from ${data.exportedAt?dayStr(data.exportedAt):"the file"}. Records not in the backup are kept.`, "Restore"))) return;
+  try {
+    const all = [];
+    for(const c of COLS) for(const r of (data[c]||[])){ const { id, ...rest } = r; if(id) all.push([F.doc(fs,c,id), rest]); }
+    if(data.settings) all.push([F.doc(fs,"settings/main"), data.settings]);
+    for(let i=0;i<all.length;i+=400){ const b = F.writeBatch(fs); all.slice(i,i+400).forEach(([ref,d]) => b.set(ref,d)); await settle(b.commit()); }
+    toast(`Restored ${n} records`);
+  } catch(err){ console.error(err); toast("Restore failed — try again"); }
+};
+
+// save every shard of the chosen games so search works with no signal
+$("#cat-offline").onclick = async () => {
+  if(!CAT.manifest){ toast("Catalog not loaded yet"); return; }
+  const msg = $("#cat-offline-msg"), btn = $("#cat-offline"); btn.disabled = true;
+  const games = Object.entries(CAT.manifest.games).filter(([,g]) => !g.error);
+  const urls = [];
+  for(const [k,g] of games){ urls.push(`catalog/${k}/sets.json?v=${ver()}`); for(const sh of g.shards) urls.push(`catalog/${k}/${sh}.json?v=${ver()}`); }
+  for(let b=0;b<(CAT.manifest.priceBuckets||32);b++) urls.push(`catalog/prices/${b}.json?v=${ver()}`);
+  let done = 0, bad = 0;
+  const work = async () => { while(urls.length){ const u = urls.shift(); try { const r = await fetch(u); if(!r.ok) bad++; else await r.arrayBuffer(); } catch(e){ bad++; } done++; msg.textContent = `Saving… ${done} files`; } };
+  await Promise.all([work(),work(),work(),work()]);
+  msg.textContent = bad ? `Saved, but ${bad} files failed — try again on better signal.` : `Saved. Search works offline until the next nightly update.`;
+  btn.disabled = false;
+};
+
+// installable + offline
+if("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(e => console.warn("sw", e)));
+
+showTab(location.hash.slice(1) || "inventory");
+renderAll();
+loadManifest().then(() => { buySearch.refresh(); refreshInventoryPrices(); });
+})();
+</script>
+</body>
+</html>
