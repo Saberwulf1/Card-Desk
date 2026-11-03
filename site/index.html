@@ -9,180 +9,291 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
+  @font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-500.woff2) format("woff2");font-weight:500;font-display:swap}
+  @font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-700.woff2) format("woff2");font-weight:700;font-display:swap}
+  @font-face{font-family:"Bricolage Grotesque";src:url(fonts/bricolage-800.woff2) format("woff2");font-weight:800;font-display:swap}
+  @font-face{font-family:"IBM Plex Sans";src:url(fonts/plex-400.woff2) format("woff2");font-weight:400;font-display:swap}
+  @font-face{font-family:"IBM Plex Sans";src:url(fonts/plex-500.woff2) format("woff2");font-weight:500;font-display:swap}
+  @font-face{font-family:"IBM Plex Sans";src:url(fonts/plex-600.woff2) format("woff2");font-weight:600;font-display:swap}
+  @font-face{font-family:"IBM Plex Sans";src:url(fonts/plex-700.woff2) format("woff2");font-weight:700;font-display:swap}
   :root{
-    --bg:#f3f4f6; --panel:#fff; --ink:#15171a; --muted:#5f6672; --line:#e1e4e9; --hover:#f6f8fb;
-    --accent:#1f5eff; --accent-ink:#fff; --accent-bg:#eaf0ff;
-    --good:#0f8a4a; --good-bg:#e6f6ed; --bad:#c62828; --bad-bg:#fdecec; --warn:#a15c00; --warn-bg:#fff4e0;
-    --r:10px;
+    --display:"Bricolage Grotesque",ui-rounded,"Segoe UI",system-ui,sans-serif;
+    --body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    /* binder pages, playmat navy, foil */
+    --bg:#E8ECF2; --paper:#FFFFFF; --ink:#19202E; --muted:#5B667D; --line:#DCE2EB; --hover:#F2F5FA; --sunk:#F4F6FA;
+    --navy:#1A2340; --navy-2:#27335C;
+    --accent:#3452D0; --accent-ink:#fff; --accent-bg:#E7ECFC;
+    --good:#0F8257; --good-bg:#E1F3EA; --bad:#BF3A30; --bad-bg:#FBE8E5; --warn:#965700; --warn-bg:#FFF0D3;
+    --c-nm:#14895C; --c-lp:#5E9A2D; --c-mp:#C48A07; --c-hp:#DB6A26; --c-dmg:#C43B32;
+    --holo:linear-gradient(100deg,#ff9fc8 0%,#ffd76e 17%,#9bedc0 34%,#86ccff 51%,#c2a2ff 68%,#ff9fc8 85%,#ffd76e 100%);
+    --shadow:0 1px 0 rgba(26,35,64,.04),0 4px 14px -6px rgba(26,35,64,.14);
+    --r:14px;
+    --pocket:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='132'%3E%3Crect x='6' y='6' width='84' height='120' rx='7' fill='none' stroke='%231A2340' stroke-opacity='.055' stroke-width='1.2'/%3E%3C/svg%3E");
   }
   @media (prefers-color-scheme: dark){
-    :root{ --bg:#0f1115; --panel:#181b21; --ink:#eef0f3; --muted:#9aa3ae; --line:#2a2f38; --hover:#1f232b;
-      --accent:#5b8cff; --accent-bg:#1b2847; --good:#43c984; --good-bg:#15301f; --bad:#ff6b6b; --bad-bg:#3a1a1a;
-      --warn:#f0b04a; --warn-bg:#3a2a10; }
+    :root{ --bg:#0E1322; --paper:#161D30; --ink:#E7EBF3; --muted:#97A2BA; --line:#263049; --hover:#1C2540; --sunk:#121829;
+      --navy:#0A0F1E; --navy-2:#18213D; --accent:#7F95FF; --accent-ink:#0E1322; --accent-bg:#1E2A55;
+      --good:#3FCB8E; --good-bg:#12301F; --bad:#FF7A6E; --bad-bg:#3A1A18; --warn:#F2B451; --warn-bg:#382A10;
+      --shadow:0 1px 0 rgba(0,0,0,.2),0 6px 18px -8px rgba(0,0,0,.6);
+      --pocket:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='132'%3E%3Crect x='6' y='6' width='84' height='120' rx='7' fill='none' stroke='%23ffffff' stroke-opacity='.035' stroke-width='1.2'/%3E%3C/svg%3E"); }
   }
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  html{background:var(--bg)}
+  body{margin:0;color:var(--ink);font:14px/1.5 var(--body);background:var(--pocket) 0 0/96px 132px, var(--bg);min-height:100vh;-webkit-font-smoothing:antialiased}
   button,input,select{font:inherit;color:inherit}
-  a{color:var(--accent)}
-  /* top bar */
-  .top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
-  .top-in{max-width:1500px;margin:0 auto;padding:0 24px;height:54px;display:flex;align-items:center;gap:22px}
-  .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:16px;white-space:nowrap}
-  .brand img{width:26px;height:26px}
-  .nav{display:flex;gap:2px;height:100%}
-  .nav button{border:0;background:none;padding:0 14px;height:100%;font-weight:650;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent}
-  .nav button:hover{color:var(--ink)}
-  .nav button.on{color:var(--accent);border-bottom-color:var(--accent)}
-  .top-right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);white-space:nowrap}
-  .pill{font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--line)}
-  .pill.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+  a{color:var(--accent);text-underline-offset:2px}
+  i[data-icon]{display:inline-flex;font-style:normal}
+  i[data-icon] svg{width:16px;height:16px}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+  /* top bar: playmat navy with a foil edge */
+  .top{position:sticky;top:0;z-index:20;background:radial-gradient(120% 220% at 0% 0%,var(--navy-2) 0%,var(--navy) 55%);color:#fff;box-shadow:0 6px 20px -12px rgba(10,15,30,.7)}
+  .top::after{content:"";position:absolute;left:0;right:0;bottom:-3px;height:3px;background:var(--holo);background-size:200% 100%;opacity:.95}
+  .top-in{max-width:1500px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:26px}
+  .brand{display:flex;align-items:center;gap:10px;font:800 19px/1 var(--display);letter-spacing:-.01em;white-space:nowrap}
+  .brand .logo{width:24px;height:33px;border-radius:5px;background:var(--holo);background-size:250% 100%;box-shadow:0 0 0 2px rgba(255,255,255,.9) inset,0 2px 8px rgba(0,0,0,.35);transform:rotate(-8deg);position:relative;animation:foil 9s linear infinite}
+  .brand .logo::after{content:"";position:absolute;inset:5px 4px;border-radius:2px;border:1.5px solid rgba(26,35,64,.35)}
+  @keyframes foil{to{background-position:250% 0}}
+  .nav{display:flex;gap:4px;height:100%;align-items:center}
+  .nav button{display:inline-flex;align-items:center;gap:7px;border:0;background:none;padding:8px 13px;border-radius:9px;font:600 14.5px/1 var(--display);color:rgba(255,255,255,.66);cursor:pointer;transition:background .15s,color .15s}
+  .nav button svg{width:17px;height:17px;opacity:.85}
+  .nav button:hover{color:#fff;background:rgba(255,255,255,.07)}
+  .nav button.on{color:#fff;background:rgba(255,255,255,.13);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .top-right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px;color:rgba(255,255,255,.7);white-space:nowrap}
+  .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.88)}
+  .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ADE96;box-shadow:0 0 0 3px rgba(74,222,150,.2)}
+  .pill.warn::before{background:#F5B13D;box-shadow:0 0 0 3px rgba(245,177,61,.2)}
+  .pill.offline::before{background:#F5B13D}
   .pill.off{display:none}
-  .page{max-width:1500px;margin:0 auto;padding:18px 24px 80px}
-  .view{display:none}.view.on{display:block}
+  .page{max-width:1500px;margin:0 auto;padding:22px 24px 90px}
+  .view{display:none}.view.on{display:block;animation:in .18s ease-out}
+  @keyframes in{from{opacity:.4}to{opacity:1}}
+
+  /* page heading per tab */
+  .ph{display:flex;align-items:flex-end;gap:16px;margin:2px 0 18px}
+  .ph h1{font:800 30px/1.05 var(--display);letter-spacing:-.02em;margin:0}
+  .ph p{margin:0 0 3px;color:var(--muted)}
+
   /* layout */
-  .cols{display:grid;gap:18px;align-items:start}
+  .cols{display:grid;gap:20px;align-items:start}
   .cols.c-buy{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
   .cols.c-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
   .cols.c-money{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
-  .stack{display:flex;flex-direction:column;gap:18px;min-width:0}
-  @media (max-width:1100px){.cols.c-buy,.cols.c-2,.cols.c-money{grid-template-columns:1fr}.top-in{gap:10px;padding:0 12px}.nav button{padding:0 9px}.page{padding:12px}}
+  .stack{display:flex;flex-direction:column;gap:20px;min-width:0}
+  @media (max-width:1100px){.cols.c-buy,.cols.c-2,.cols.c-money{grid-template-columns:1fr}.top-in{gap:10px;padding:0 12px}.nav button{padding:8px 9px}.nav button span{display:none}.page{padding:14px 12px 90px}}
   @media (max-width:700px){.brand span,.top-right .who{display:none}}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+  .panel{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;min-width:0;box-shadow:var(--shadow)}
   .panel.flush{padding:0;overflow:hidden}
-  .panel-h{display:flex;align-items:center;gap:8px 10px;margin:0 0 10px;flex-wrap:wrap}
-  .panel.flush .panel-h{padding:12px 16px 0}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0}
-  .sticky{position:sticky;top:72px}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
-  .stat .k{font-size:12px;color:var(--muted);font-weight:650}
-  .stat .v{font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
-  .big{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+  .panel-h{display:flex;align-items:center;gap:8px 12px;margin:0 0 12px;flex-wrap:wrap}
+  .panel.flush .panel-h{padding:14px 18px 0}
+  h2{font:700 17px/1.2 var(--display);letter-spacing:-.005em;margin:0;display:flex;align-items:center;gap:8px}
+  h2 .ic{width:28px;height:28px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent-bg);color:var(--accent)}
+  h2 .ic svg{width:16px;height:16px}
+  h2 .ic.g{background:var(--good-bg);color:var(--good)}
+  h2 .ic.y{background:var(--warn-bg);color:var(--warn)}
+  .sticky{position:sticky;top:80px}
+
+  /* stat tiles */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px}
+  .stat{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:13px 16px 14px;box-shadow:var(--shadow);overflow:hidden}
+  .stat .k{font-size:12.5px;color:var(--muted);font-weight:600}
+  .stat .v{font:800 26px/1.15 var(--display);letter-spacing:-.015em;font-variant-numeric:tabular-nums;margin-top:3px}
+  .stat svg.bg{position:absolute;right:-8px;bottom:-10px;width:62px;height:62px;color:var(--ink);opacity:.06}
+  .stat.hero{background:linear-gradient(135deg,var(--navy-2),var(--navy));color:#fff;border-color:transparent}
+  .stat.hero .k{color:rgba(255,255,255,.7)}
+  .stat.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--holo)}
+  .stat.hero svg.bg{color:#fff;opacity:.1}
+  .stat.hero .good{color:#5BE3A6}.stat.hero .bad{color:#FF8E84}
+  .big{font:800 30px/1.1 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
   .good{color:var(--good)} .bad{color:var(--bad)} .muted{color:var(--muted)} .small{font-size:12.5px}
-  label{display:block;font-size:12px;font-weight:650;color:var(--muted);margin-bottom:3px}
-  input,select{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
-  input[type=checkbox]{width:auto;padding:0}
-  input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:transparent}
-  .chk{display:inline-flex;gap:6px;align-items:center;margin:0;font-size:13.5px;color:var(--ink);font-weight:500;cursor:pointer}
+
+  /* forms */
+  label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:4px}
+  input,select{width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:9px;background:var(--sunk);transition:border-color .12s,background .12s}
+  input:hover,select:hover{border-color:#c5cddb}
+  input:focus,select:focus{outline:none;border-color:var(--accent);background:var(--paper);box-shadow:0 0 0 3px var(--accent-bg)}
+  input[type=checkbox]{width:16px;height:16px;padding:0;accent-color:var(--accent)}
+  .chk{display:inline-flex;gap:7px;align-items:center;margin:0;font-size:13.5px;color:var(--ink);font-weight:500;cursor:pointer}
+  .search{position:relative}
+  .search svg{position:absolute;left:11px;top:50%;width:16px;height:16px;transform:translateY(-50%);color:var(--muted);pointer-events:none}
+  .search input{padding-left:34px}
   .grid{display:grid;gap:10px}
-  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}.g4{grid-template-columns:repeat(4,1fr)}
-  .btn{padding:7px 13px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-weight:650;cursor:pointer;white-space:nowrap}
-  .btn:hover{background:var(--hover)}
-  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-  .btn.go{background:var(--good);color:#fff;border-color:var(--good);font-size:16px;padding:11px 16px;width:100%}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr 1fr}
+
+  /* buttons */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:var(--paper);font-weight:600;cursor:pointer;white-space:nowrap;transition:background .12s,border-color .12s,transform .06s}
+  .btn:hover{background:var(--hover);border-color:#c8d0dd}
+  .btn:active{transform:translateY(1px)}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 2px 6px -2px rgba(52,82,208,.6)}
+  .btn.primary:hover{filter:brightness(1.07)}
+  .btn.go{position:relative;overflow:hidden;width:100%;padding:13px 18px;border:0;border-radius:11px;color:#fff;font:700 17px/1 var(--display);letter-spacing:.005em;background:linear-gradient(180deg,#17996A,#0D7A50);box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 6px 16px -6px rgba(13,122,80,.7)}
+  .btn.go::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.28) 45%,transparent 60%);transform:translateX(-100%);transition:transform .6s}
+  .btn.go:hover::after{transform:translateX(100%)}
+  .btn.go:disabled{background:var(--line);color:var(--muted);box-shadow:none}
+  .btn.go.trade{background:linear-gradient(180deg,#4864E0,#2E47B8);box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 6px 16px -6px rgba(46,71,184,.7)}
+  .btn.go.buy{background:linear-gradient(180deg,#2C3A6B,#1A2340);box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 6px 16px -6px rgba(26,35,64,.7)}
+  .btn.go:disabled,.btn.go.buy:disabled,.btn.go.trade:disabled{background:var(--sunk);color:var(--muted);box-shadow:inset 0 0 0 1px var(--line)}
+  .tradebar .btn.go:disabled{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
   .btn.danger{color:var(--bad)}
-  .btn.sm{padding:4px 9px;font-size:13px}
-  .btn.link{border:0;background:none;color:var(--accent);padding:4px 6px}
-  .btn:disabled{opacity:.45;cursor:not-allowed}
-  .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:17px;line-height:1;padding:2px 6px;border-radius:6px}
+  .btn.sm{padding:5px 10px;font-size:13px;border-radius:8px}
+  .btn.link{border:0;background:none;color:var(--accent);padding:3px 6px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:3px 7px;border-radius:7px}
   .x:hover{color:var(--bad);background:var(--bad-bg)}
   .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .spacer{flex:1}
-  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:nowrap;max-width:100%;overflow-x:auto}
-  .seg button{border:0;border-right:1px solid var(--line);background:var(--panel);padding:6px 11px;font-weight:650;cursor:pointer;white-space:nowrap}
-  .seg button:last-child{border-right:0}
-  .seg button:hover{background:var(--hover)}
-  .seg button.on{background:var(--accent);color:var(--accent-ink)}
-  .pcts{display:flex;gap:6px;flex-wrap:wrap}
-  .pct{min-width:52px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);font-weight:750;cursor:pointer;font-variant-numeric:tabular-nums}
-  .pct:hover{border-color:var(--accent)}
-  .pct.on{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
-  .chip{display:inline-block;font-size:11.5px;font-weight:650;padding:1px 7px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .seg{display:inline-flex;padding:3px;gap:2px;border-radius:10px;background:var(--sunk);border:1px solid var(--line);max-width:100%;overflow-x:auto}
+  .seg button{border:0;background:none;padding:6px 12px;border-radius:7px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--muted)}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(26,35,64,.15)}
+  /* condition buttons: colour = grade */
+  .seg.cond button{min-width:46px;font-weight:700}
+  .seg.cond button[data-c=NM].on{background:var(--c-nm);color:#fff}
+  .seg.cond button[data-c=LP].on{background:var(--c-lp);color:#fff}
+  .seg.cond button[data-c=MP].on{background:var(--c-mp);color:#fff}
+  .seg.cond button[data-c=HP].on{background:var(--c-hp);color:#fff}
+  .seg.cond button[data-c=DMG].on{background:var(--c-dmg);color:#fff}
+  .cg{display:inline-block;min-width:38px;text-align:center;font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:6px;color:#fff;background:var(--muted)}
+  .cg.NM{background:var(--c-nm)}.cg.LP{background:var(--c-lp)}.cg.MP{background:var(--c-mp)}.cg.HP{background:var(--c-hp)}.cg.DMG{background:var(--c-dmg)}
+  .pcts{display:flex;gap:5px;flex-wrap:wrap}
+  .pct{min-width:50px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--paper);font:700 14px/1 var(--display);cursor:pointer;font-variant-numeric:tabular-nums;transition:all .12s}
+  .pct:hover{border-color:var(--accent);color:var(--accent)}
+  .pct.on{border-color:var(--navy);background:var(--navy);color:#fff;box-shadow:0 2px 6px -2px rgba(26,35,64,.6)}
+  .chip{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--sunk);border:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap;vertical-align:1px}
   .chip.good{background:var(--good-bg);color:var(--good);border-color:transparent}
   .chip.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
   .chip.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
   .chip.acc{background:var(--accent-bg);color:var(--accent);border-color:transparent}
-  .empty{padding:22px;text-align:center;color:var(--muted)}
-  .total{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;gap:10px}
+  .chip.vin{background:linear-gradient(90deg,#f7e3b0,#f3d38a);color:#6b4500;border-color:transparent}
+  .total{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;gap:10px}
   .total + .total{border-top:1px dashed var(--line)}
-  .banner{padding:10px 14px;border-radius:8px;background:var(--warn-bg);color:var(--warn);font-weight:600;margin-bottom:14px;display:none}
+  .banner{padding:11px 15px;border-radius:10px;background:var(--warn-bg);color:var(--warn);font-weight:600;margin-bottom:16px;display:none}
   .banner.on{display:block}
+
+  /* empty states with drawings */
+  .empty{padding:26px 20px;text-align:center;color:var(--muted)}
+  .empty svg.art{display:block;margin:0 auto 10px;width:120px;height:84px}
+  .empty b{display:block;color:var(--ink);font:700 15px/1.3 var(--display);margin-bottom:3px}
+
   /* tables */
   .tbl-wrap{overflow:auto}
-  table.tbl{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
-  .tbl th{position:sticky;top:0;background:var(--panel);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:700;text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
+  table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-variant-numeric:tabular-nums}
+  .tbl th{position:sticky;top:0;background:var(--paper);font-size:12px;color:var(--muted);font-weight:600;text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
   .tbl th.sort{cursor:pointer;user-select:none}.tbl th.sort:hover{color:var(--ink)}
   .tbl th.sorted{color:var(--accent)}
-  .tbl td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .tbl td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
   .tbl tr:last-child td{border-bottom:0}
   .tbl .n{text-align:right;white-space:nowrap}
   .tbl tbody tr.tap{cursor:pointer}
+  .tbl tbody tr{transition:background .1s}
   .tbl tbody tr:hover td{background:var(--hover)}
-  .tbl .nm{font-weight:650}
-  .tbl td.cc{min-width:210px}
+  .tbl .nm{font-weight:600}
   .tbl .sub{font-size:12px;color:var(--muted)}
-  .tbl td.thc{width:44px;padding-right:0}
-  .qty{display:inline-flex;align-items:center;gap:4px}
-  .qty button{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:var(--panel);font-weight:800;cursor:pointer;line-height:1}
-  .qty b{min-width:18px;text-align:center}
-  .pbtn{border:0;background:none;padding:0;font-weight:750;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;font-variant-numeric:tabular-nums}
-  /* images */
-  .th{display:block;width:34px;height:47px;object-fit:cover;border-radius:3px;background:var(--bg);border:1px solid var(--line)}
-  .th.lg{width:44px;height:61px}
-  .th.none{display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
-  .peek{position:fixed;z-index:60;pointer-events:none;display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
-  .peek img{display:block;width:250px;border-radius:8px}
+  .tbl td.thc{width:48px;padding-right:2px}
+  .tbl td.cc{min-width:210px}
+  .tbl td.empty{border:0}
+  .qty{display:inline-flex;align-items:center;gap:3px;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:2px}
+  .qty button{width:22px;height:22px;border-radius:6px;border:0;background:none;font-weight:800;cursor:pointer;line-height:1;color:var(--muted)}
+  .qty button:hover{background:var(--paper);color:var(--ink)}
+  .qty b{min-width:20px;text-align:center}
+  .pbtn{border:0;background:none;padding:0;font-weight:700;cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px;font-variant-numeric:tabular-nums}
+
+  /* card pictures: framed like the real thing */
+  .th{display:block;width:34px;height:47px;object-fit:cover;border-radius:3px;background:var(--sunk);box-shadow:0 0 0 1px rgba(26,35,64,.12),0 2px 4px -1px rgba(26,35,64,.3);transition:transform .15s}
+  img.th:hover{transform:scale(1.08) rotate(-2deg)}
+  .th.lg{width:46px;height:64px}
+  .th.none{display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);background:repeating-linear-gradient(135deg,var(--sunk) 0 5px,transparent 5px 10px)}
+  .peek{position:fixed;z-index:60;pointer-events:none;display:none;padding:4px;border-radius:16px;background:var(--holo);background-size:200% 100%;box-shadow:0 22px 50px -10px rgba(10,15,30,.55);animation:foil 6s linear infinite}
+  .peek img{display:block;width:252px;border-radius:12px;background:var(--paper)}
   .peek.on{display:block}
+
   /* catalog search */
-  .cres-list{display:flex;flex-direction:column;max-height:calc(100vh - 260px);min-height:120px;overflow:auto;border-top:1px solid var(--line);margin:10px -16px -14px}
-  .cres{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:2px 12px;padding:8px 16px;border-bottom:1px solid var(--line);cursor:pointer}
+  .cres-list{display:flex;flex-direction:column;max-height:calc(100vh - 280px);min-height:120px;overflow:auto;border-top:1px solid var(--line);margin:12px -18px -16px}
+  .cres{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:2px 14px;padding:10px 18px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .1s}
   .cres:hover,.cres.hl{background:var(--hover)}
   .cres .th{grid-row:span 3}
-  .cres .nm{font-weight:700}
-  .cres .px{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+  .cres .nm{font-weight:700;font-size:14.5px}
+  .cres .px{font:800 16px/1.2 var(--display);text-align:right;font-variant-numeric:tabular-nums}
   .cres .meta{grid-column:2/4;font-size:12.5px;color:var(--muted)}
-  .prts{grid-column:2/4;display:flex;gap:5px;flex-wrap:wrap;margin-top:3px}
-  .prt{font-size:12px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-variant-numeric:tabular-nums}
-  .prt:hover{border-color:var(--accent);color:var(--accent)}
-  .cat-status{font-size:12px;color:var(--muted);margin-top:8px}
+  .prts{grid-column:2/4;display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+  .prt{font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--paper);cursor:pointer;font-variant-numeric:tabular-nums}
+  .prt:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+  .cat-status{font-size:12px;color:var(--muted);margin-top:8px;min-height:18px}
+
   /* entry panel */
-  .entry-top{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;margin-bottom:12px}
-  .entry-img{width:110px;height:153px;border-radius:7px;background:var(--bg);border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--muted);overflow:hidden}
-  .entry-img img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
-  .entry-row{display:grid;grid-template-columns:auto 1fr 1fr 80px;gap:10px;align-items:end;margin-bottom:10px}
-  @media (max-width:700px){.entry-row{grid-template-columns:1fr 1fr}.entry-top{grid-template-columns:80px 1fr}.entry-img{width:80px;height:111px}}
-  .pickinfo{font-size:12.5px;color:var(--muted);margin-top:8px;min-height:18px}
+  .entry-top{display:grid;grid-template-columns:116px minmax(0,1fr);gap:16px;margin-bottom:14px}
+  .entry-img{position:relative;width:116px;height:162px;border-radius:9px;background:repeating-linear-gradient(135deg,var(--sunk) 0 6px,transparent 6px 12px);border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--muted);overflow:hidden;padding:8px}
+  .entry-img.has{padding:0;border:0;box-shadow:0 10px 24px -10px rgba(26,35,64,.55),0 0 0 1px rgba(26,35,64,.12)}
+  .entry-img img{width:100%;height:100%;object-fit:cover;cursor:zoom-in;display:block}
+  .entry-img.has::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 20%,rgba(255,255,255,.35) 40%,rgba(255,180,230,.18) 48%,rgba(140,220,255,.18) 56%,transparent 72%);background-size:250% 100%;background-position:100% 0;mix-blend-mode:screen;transition:background-position .7s ease}
+  .entry-img.has:hover::after{background-position:-50% 0}
+  .entry-row{display:grid;grid-template-columns:auto 1fr 1fr 80px;gap:12px;align-items:end;margin-bottom:12px}
+  @media (max-width:700px){.entry-row{grid-template-columns:1fr 1fr}.entry-top{grid-template-columns:80px 1fr}.entry-img{width:80px;height:112px}}
+  .pickinfo{font-size:12.5px;color:var(--muted);margin-top:9px;min-height:18px}
   .pickinfo b{color:var(--ink)}
+
   /* modal */
-  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
+  .modal-bg{position:fixed;inset:0;background:rgba(14,19,34,.55);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:40;padding:16px}
   .modal-bg.on{display:flex}
-  .modal{background:var(--panel);width:100%;max-width:640px;border-radius:14px;padding:18px 20px;max-height:92vh;overflow:auto}
+  .modal{background:var(--paper);width:100%;max-width:560px;border-radius:18px;padding:22px 24px;max-height:92vh;overflow:auto;box-shadow:0 30px 70px -20px rgba(10,15,30,.6);animation:pop .16s ease-out}
+  @keyframes pop{from{transform:translateY(6px) scale(.985);opacity:.6}}
   .modal.wide{max-width:900px}
-  .modal h3{margin:0 0 12px;font-size:18px}
-  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-weight:650;opacity:0;transition:opacity .2s;pointer-events:none;z-index:70}
-  .toast.on{opacity:1}
+  .modal h3{margin:0 0 14px;font:800 22px/1.2 var(--display);letter-spacing:-.01em}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,8px);background:var(--navy);color:#fff;padding:11px 18px 11px 14px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .2s,transform .2s;pointer-events:none;z-index:70;display:flex;align-items:center;gap:9px;box-shadow:0 12px 30px -10px rgba(10,15,30,.6)}
+  .toast::before{content:"";width:8px;height:22px;border-radius:3px;background:var(--holo)}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
   /* trade */
-  .tradebar{position:sticky;bottom:0;z-index:15;margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);box-shadow:0 -6px 24px rgba(0,0,0,.08);padding:12px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(260px,1.3fr);gap:16px;align-items:center}
-  .tradebar .k{font-size:12px;color:var(--muted);font-weight:650}
-  .tradebar .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
-  @media (max-width:1100px){.tradebar{grid-template-columns:1fr 1fr}}
-  .side-h{display:flex;align-items:center;gap:10px;margin:0 0 12px}
-  .side-h .tag{font-size:12px;font-weight:800;padding:3px 9px;border-radius:6px}
+  .tradebar{position:sticky;bottom:12px;z-index:15;margin-top:20px;border-radius:16px;padding:14px 18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(270px,1.3fr);gap:18px;align-items:center;color:#fff;background:radial-gradient(120% 200% at 0% 0%,var(--navy-2),var(--navy) 60%);box-shadow:0 18px 40px -16px rgba(10,15,30,.75)}
+  .tradebar::before{content:"";position:absolute;left:18px;right:18px;top:0;height:3px;border-radius:0 0 3px 3px;background:var(--holo)}
+  .tradebar .k{font-size:12.5px;color:rgba(255,255,255,.7);font-weight:600}
+  .tradebar .v{font:800 23px/1.15 var(--display);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .tradebar .small{color:rgba(255,255,255,.65)}
+  .tradebar .good{color:#5BE3A6}.tradebar .bad{color:#FF8E84}
+  .tradebar label{color:rgba(255,255,255,.7)}
+  .tradebar input,.tradebar select{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#fff}
+  .tradebar select option{color:#111}
+  .tradebar .btn.sm{background:transparent;color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.2)}
+  .tradebar .btn.sm:hover{background:rgba(255,255,255,.08)}
+  .tradebar .bal{padding-left:18px;border-left:1px solid rgba(255,255,255,.14)}
+  @media (max-width:1100px){.tradebar{grid-template-columns:1fr 1fr}.tradebar .bal{padding-left:0;border:0}}
+  .side-h{display:flex;align-items:center;gap:10px;margin:0 0 14px}
+  .tag{display:inline-flex;align-items:center;gap:6px;font:700 13px/1 var(--display);padding:6px 11px;border-radius:999px}
+  .tag svg{width:14px;height:14px}
   .tag.in{background:var(--good-bg);color:var(--good)}
   .tag.out{background:var(--accent-bg);color:var(--accent)}
+
   /* sign-in */
-  .gate{position:fixed;inset:0;z-index:80;background:var(--bg);display:none;align-items:center;justify-content:center;padding:20px}
+  .gate{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;padding:20px;color:#fff;background:radial-gradient(90% 120% at 20% 0%,#2E3B6B 0%,var(--navy) 50%,#0B1020 100%)}
+  .gate::before{content:"";position:absolute;inset:0;background:var(--pocket) 0 0/96px 132px;filter:invert(1);opacity:.5}
   .gate.on{display:flex}
-  .gate .box{max-width:380px;width:100%;text-align:center}
-  .gate h1{font-size:28px;margin:10px 0 6px}
-  .gbtn{display:inline-flex;gap:10px;align-items:center;justify-content:center;width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:700;font-size:16px;cursor:pointer;margin-top:18px}
+  .gate .box{position:relative;max-width:400px;width:100%;text-align:center}
+  .gate .fan{width:230px;height:170px;margin:0 auto 6px;display:block}
+  .gate h1{font:800 40px/1 var(--display);letter-spacing:-.02em;margin:6px 0 8px}
+  .gate p{color:rgba(255,255,255,.72);margin:0}
+  .gbtn{display:inline-flex;gap:10px;align-items:center;justify-content:center;width:100%;padding:13px 16px;border-radius:12px;border:0;background:#fff;color:#1A2340;font:700 16px/1 var(--display);cursor:pointer;margin-top:24px;box-shadow:0 10px 30px -10px rgba(0,0,0,.6)}
+  .gbtn:hover{filter:brightness(.97)}
+  .gate .btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.25)}
   .ctab{border-collapse:collapse}
   .ctab td,.ctab th{padding:3px 4px;text-align:center}
-  .ctab input{width:70px;text-align:center}
+  .ctab th{font-weight:600}
+  .ctab input{width:68px;text-align:center}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="holo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9fc8"/><stop offset=".25" stop-color="#ffd76e"/><stop offset=".5" stop-color="#9bedc0"/><stop offset=".75" stop-color="#86ccff"/><stop offset="1" stop-color="#c2a2ff"/></linearGradient></defs></svg>
 <header class="top"><div class="top-in">
-  <div class="brand"><img src="icon.svg" alt=""><span>Card Desk</span></div>
+  <div class="brand"><div class="logo" aria-hidden="true"></div><span>Card Desk</span></div>
   <nav class="nav" id="nav">
-    <button data-tab="inventory">Inventory</button>
-    <button data-tab="buy">Buy</button>
-    <button data-tab="sell">Sell</button>
-    <button data-tab="trade">Trade</button>
-    <button data-tab="money">Money</button>
+    <button data-tab="inventory"><i data-icon="inventory"></i><span>Inventory</span></button>
+    <button data-tab="buy"><i data-icon="buy"></i><span>Buy</span></button>
+    <button data-tab="sell"><i data-icon="sell"></i><span>Sell</span></button>
+    <button data-tab="trade"><i data-icon="trade"></i><span>Trade</span></button>
+    <button data-tab="money"><i data-icon="money"></i><span>Money</span></button>
   </nav>
   <div class="top-right">
-    <span class="pill off" id="net">Offline · changes will sync</span>
+    <span class="pill offline off" id="net">Offline · changes will sync</span>
     <span class="pill" id="price-pill" title="">Prices…</span>
     <span class="who" id="who"></span>
   </div>
@@ -193,14 +304,15 @@
 
   <!-- INVENTORY -->
   <section class="view" id="v-inventory">
+    <div class="ph"><h1>Inventory</h1><p>Everything in your boxes and binders, priced and ready to sell.</p></div>
     <div class="stats" id="inv-stats"></div>
     <div class="panel flush">
       <div class="row" style="padding:12px 16px">
-        <input id="inv-search" placeholder="Search name, set or number…" style="max-width:340px">
+        <div class="search" style="width:340px;max-width:100%"><i data-icon="search"></i><input id="inv-search" placeholder="Search name, set or printing…"></div>
         <label class="chk"><input type="checkbox" id="inv-sold"> Show sold</label>
         <span class="muted small" id="inv-count"></span>
         <span class="spacer"></span>
-        <button class="btn primary" id="inv-add">+ Add card</button>
+        <button class="btn primary" id="inv-add"><i data-icon="plus"></i>Add card</button>
       </div>
       <div class="tbl-wrap" style="max-height:calc(100vh - 250px)"><table class="tbl" id="inv-table"></table></div>
     </div>
@@ -208,16 +320,17 @@
 
   <!-- BUY -->
   <section class="view" id="v-buy">
+    <div class="ph"><h1>Buy</h1><p>Look up a seller's cards, grade them, and make an offer.</p></div>
     <div class="cols c-buy">
       <div class="panel sticky" id="buy-search"></div>
       <div class="stack">
         <div class="panel" id="buy-entry"></div>
         <div class="panel flush">
-          <div class="panel-h"><h2>Buy list</h2><span class="spacer"></span><button class="btn sm" id="buy-clear">Clear list</button></div>
+          <div class="panel-h"><h2><span class="ic" data-icon="list"></span>Buy list</h2><span class="spacer"></span><button class="btn sm" id="buy-clear">Clear list</button></div>
           <div class="tbl-wrap"><table class="tbl" id="buy-table"></table></div>
         </div>
         <div class="panel">
-          <div class="row" style="margin-bottom:10px"><h2>Offer % of market</h2><span class="spacer"></span><div class="pcts" id="buy-pcts"></div></div>
+          <div class="row" style="margin-bottom:10px"><h2><span class="ic y" data-icon="pct"></span>Your offer</h2><span class="spacer"></span><div class="pcts" id="buy-pcts"></div></div>
           <div id="buy-totals"></div>
         </div>
       </div>
@@ -226,18 +339,19 @@
 
   <!-- SELL -->
   <section class="view" id="v-sell">
+    <div class="ph"><h1>Sell</h1><p>Ring up a sale straight from your stock.</p></div>
     <div class="cols c-buy">
       <div class="panel sticky">
-        <div class="panel-h"><h2>Your inventory</h2><span class="spacer"></span><button class="btn sm" id="sell-adhoc">+ Item not in inventory</button></div>
+        <div class="panel-h"><h2><span class="ic" data-icon="inventory"></span>Your stock</h2><span class="spacer"></span><button class="btn sm" id="sell-adhoc">+ Item not in inventory</button></div>
         <div id="sell-pick"></div>
       </div>
       <div class="stack">
         <div class="panel flush">
-          <div class="panel-h"><h2>This sale</h2></div>
+          <div class="panel-h"><h2><span class="ic g" data-icon="sell"></span>This sale</h2></div>
           <div class="tbl-wrap"><table class="tbl" id="sell-table"></table></div>
         </div>
         <div class="panel">
-          <div class="row" style="margin-bottom:6px"><h2>Price at % of market</h2><span class="spacer"></span><div class="pcts" id="sell-pcts"></div></div>
+          <div class="row" style="margin-bottom:6px"><h2><span class="ic y" data-icon="pct"></span>Price at % of market</h2><span class="spacer"></span><div class="pcts" id="sell-pcts"></div></div>
           <div class="muted small" id="sell-note" style="margin-bottom:8px"></div>
           <div id="sell-totals"></div>
         </div>
@@ -247,25 +361,26 @@
 
   <!-- TRADE -->
   <section class="view" id="v-trade">
+    <div class="ph"><h1>Trade</h1><p>Their cards in, your cards out, and who owes what.</p></div>
     <div class="cols c-2">
       <div class="stack">
         <div class="panel">
-          <div class="side-h"><span class="tag in">THEY GIVE</span><h2>Customer's cards → your inventory</h2></div>
+          <div class="side-h"><span class="tag in"><i data-icon="buy"></i>They give</span><h2>Customer's cards</h2></div>
           <div id="tr-search"></div>
         </div>
         <div class="panel" id="tr-entry"></div>
         <div class="panel flush">
-          <div class="panel-h"><h2>Their cards</h2><span class="spacer"></span><span class="muted small">Credit at</span><div class="pcts" id="tr-in-pcts"></div></div>
+          <div class="panel-h"><h2><span class="ic g" data-icon="list"></span>Their cards</h2><span class="spacer"></span><span class="muted small">Credit at</span><div class="pcts" id="tr-in-pcts"></div></div>
           <div class="tbl-wrap"><table class="tbl" id="tr-in-table"></table></div>
         </div>
       </div>
       <div class="stack">
         <div class="panel">
-          <div class="side-h"><span class="tag out">YOU GIVE</span><h2>Your inventory → customer</h2></div>
+          <div class="side-h"><span class="tag out"><i data-icon="sell"></i>You give</span><h2>Cards from your stock</h2></div>
           <div id="tr-pick"></div>
         </div>
         <div class="panel flush">
-          <div class="panel-h"><h2>Your cards</h2><span class="spacer"></span><span class="muted small">Priced at</span><div class="pcts" id="tr-out-pcts"></div></div>
+          <div class="panel-h"><h2><span class="ic" data-icon="list"></span>Your cards</h2><span class="spacer"></span><span class="muted small">Priced at</span><div class="pcts" id="tr-out-pcts"></div></div>
           <div class="tbl-wrap"><table class="tbl" id="tr-out-table"></table></div>
         </div>
       </div>
@@ -275,6 +390,7 @@
 
   <!-- MONEY -->
   <section class="view" id="v-money">
+    <div class="ph"><h1>Money</h1><p>Sales, profit, expenses and your pricing rules.</p></div>
     <div class="row" style="margin-bottom:14px">
       <div class="seg" id="m-period">
         <button data-p="month" class="on">This month</button><button data-p="last">Last month</button><button data-p="year">This year</button><button data-p="all">All time</button>
@@ -283,15 +399,15 @@
     <div class="stats" id="m-stats"></div>
     <div class="cols c-money">
       <div class="stack">
-        <div class="panel"><div class="panel-h"><h2>By month</h2></div><div id="m-months" class="tbl-wrap"></div></div>
+        <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>By month</h2></div><div id="m-months" class="tbl-wrap"></div></div>
         <div class="panel flush">
-          <div class="panel-h"><h2>Activity</h2><span class="spacer"></span>
+          <div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Activity</h2><span class="spacer"></span>
             <div class="seg" id="m-act"><button data-a="sales" class="on">Sales</button><button data-a="purchases">Purchases</button><button data-a="trades">Trades</button><button data-a="expenses">Expenses</button></div></div>
           <div class="tbl-wrap" style="max-height:560px;margin-top:10px"><table class="tbl" id="m-activity"></table></div>
         </div>
       </div>
       <div class="stack">
-        <div class="panel"><div class="panel-h"><h2>Add an expense</h2></div>
+        <div class="panel"><div class="panel-h"><h2><span class="ic y" data-icon="receipt"></span>Add an expense</h2></div>
           <form id="exp-form" class="grid g2" autocomplete="off">
             <div style="grid-column:1/-1"><label>What for</label><input id="e-desc" required placeholder="e.g. Show table fee, sleeves, shipping"></div>
             <div><label>Category</label><select id="e-cat"><option>Supplies</option><option>Shipping</option><option>Event / table fee</option><option>Fees</option><option>Travel</option><option>Other</option></select></div>
@@ -300,7 +416,7 @@
             <div style="align-self:end"><button class="btn primary" type="submit" style="width:100%">Add expense</button></div>
           </form>
         </div>
-        <div class="panel"><div class="panel-h"><h2>Pricing settings</h2></div>
+        <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="pct"></span>Pricing rules</h2></div>
           <div class="row" style="margin-bottom:12px"><div style="width:180px"><label>Minimum profit on a sale (%)</label><input id="set-min" type="number" min="0" step="1"></div><button class="btn" id="set-save" style="align-self:flex-end">Save</button></div>
           <label>Condition pricing (% of near-mint market)</label>
           <p class="muted small" style="margin:0 0 6px">TCGplayer's free data has one price per printing (near mint). Graded and sealed items always use 100%.</p>
@@ -308,9 +424,9 @@
           <div class="row" style="margin-top:10px"><div style="width:220px"><label>Vintage = sets released before</label><input id="set-vyear" type="number" min="1990" max="2100" step="1"></div>
             <span class="spacer"></span><button class="btn" id="cond-reset" style="align-self:flex-end">Defaults</button><button class="btn primary" id="cond-save" style="align-self:flex-end">Save</button></div>
         </div>
-        <div class="panel"><div class="panel-h"><h2>Price data</h2></div><div id="sync-info" class="muted"></div>
+        <div class="panel"><div class="panel-h"><h2><span class="ic g" data-icon="refresh"></span>Price data</h2></div><div id="sync-info" class="muted"></div>
           <div class="row" style="margin-top:10px"><button class="btn" id="cat-offline">Save catalog for offline use</button><span class="muted small" id="cat-offline-msg"></span></div></div>
-        <div class="panel"><div class="panel-h"><h2>Account &amp; backup</h2></div>
+        <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="user"></span>Account &amp; backup</h2></div>
           <div class="muted" id="acct" style="margin-bottom:10px"></div>
           <div class="row"><button class="btn" id="bk-down">Download backup</button><label class="btn" style="margin:0;color:var(--ink);font-size:14px">Restore from backup<input type="file" id="bk-up" accept=".json,application/json" style="display:none"></label><span class="spacer"></span><button class="btn danger" id="sign-out">Sign out</button></div>
         </div>
@@ -320,7 +436,7 @@
 </div>
 
 <div class="gate on" id="gate"><div class="box">
-  <img src="icon.svg" alt="" width="64" height="64">
+  <svg class="fan" data-art="fan-big" viewBox="0 0 230 170" aria-hidden="true"></svg>
   <h1>Card Desk</h1><p class="muted" id="gate-msg">Checking sign-in…</p>
   <button class="gbtn" id="gate-btn" style="display:none"><svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.5h7.1c4.2-3.8 6.5-9.5 6.5-16.2z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7c1.7-5.2 6.6-9.1 12.3-9.1z"/></svg>Sign in with Google</button>
   <button class="btn" id="gate-out" style="display:none;margin-top:10px;width:100%">Use a different account</button>
@@ -351,6 +467,47 @@ const COLS = ["cards","purchases","sales","expenses","trades"];
 const S = { cards:[], purchases:[], sales:[], expenses:[], trades:[], settings:{minProfit:10}, loaded:{} };
 let db = null;
 const ui = { tab:"inventory", invSort:"addedAt", invDir:-1, period:"month", act:"sales" };
+
+// ---------- icons & drawings ----------
+const ICONS = {
+  inventory:'<rect x="8" y="3" width="11" height="15" rx="2"/><path d="M5 7v12a2 2 0 0 0 2 2h9"/>',
+  buy:'<path d="M12 3v11"/><path d="m7.5 9.5 4.5 4.5 4.5-4.5"/><path d="M4 20h16"/>',
+  sell:'<path d="M20.5 12.5 12 21l-9-9V3h9z"/><circle cx="7.5" cy="7.5" r="1.4"/>',
+  trade:'<path d="M4 8h14l-3.5-3.5"/><path d="M20 16H6l3.5 3.5"/>',
+  money:'<path d="M4 20V11"/><path d="M10 20V5"/><path d="M16 20v-6"/><path d="M21 20H3"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>',
+  card:'<rect x="5" y="3" width="14" height="18" rx="2.2"/><path d="M8.5 8h7M8.5 12h7M8.5 16h4"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4.5 6h.01M4.5 12h.01M4.5 18h.01" stroke-width="3"/>',
+  pct:'<path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.4"/><circle cx="17" cy="17" r="2.4"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+  refresh:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  stack:'<rect x="3" y="7" width="13" height="14" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v12"/>',
+  coins:'<ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v5c0 1.7 2.7 3 6 3s6-1.3 6-3V7"/><path d="M9 15v3c0 1.7 2.7 3 6 3s6-1.3 6-3v-5c0-1.6-2.4-2.9-5.5-3"/>',
+  trend:'<path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/>',
+  tag:'<path d="M20.5 12.5 12 21l-9-9V3h9z"/><circle cx="7.5" cy="7.5" r="1.4"/>',
+  hourglass:'<path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9s10 4 10 9"/>',
+  cart:'<path d="M3 4h2.5l2.2 11h10.6L20.5 7H7"/><circle cx="9.5" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/>'
+};
+const svgIcon = (k, cls="") => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]||""}</svg>`;
+function paintIcons(root=document){ root.querySelectorAll("[data-icon]").forEach(el => { if(!el.firstChild) el.innerHTML = svgIcon(el.dataset.icon); }); }
+const HOLO = "";
+const cardShape = (x,y,w,h,rot,cx,cy,fill,extra="") => `<g transform="rotate(${rot} ${cx} ${cy})"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${w*.12}" fill="${fill}" stroke="var(--line)" stroke-width="1.5"/>${extra}</g>`;
+const innerArt = (x,y,w,h) => `<rect x="${x+w*.12}" y="${y+h*.1}" width="${w*.76}" height="${h*.45}" rx="3" fill="#fff" fill-opacity=".55"/><rect x="${x+w*.12}" y="${y+h*.62}" width="${w*.55}" height="${h*.07}" rx="2" fill="#fff" fill-opacity=".6"/><rect x="${x+w*.12}" y="${y+h*.75}" width="${w*.4}" height="${h*.07}" rx="2" fill="#fff" fill-opacity=".6"/>`;
+const ART = {
+  fan: () => `<svg class="art" viewBox="0 0 120 84" aria-hidden="true">${HOLO}${cardShape(30,14,36,52,-18,48,40,"var(--paper)")}${cardShape(54,14,36,52,16,72,40,"var(--paper)")}${cardShape(42,8,36,52,0,60,34,"url(#holo)",innerArt(42,8,36,52))}</svg>`,
+  binder: () => { let r=""; for(let i=0;i<3;i++) for(let j=0;j<3;j++) r+=`<rect x="${32+j*19}" y="${12+i*21}" width="16" height="18" rx="2.5" fill="${i===0&&j===0?"url(#holo)":"var(--sunk)"}" stroke="var(--line)" stroke-width="1.2"/>`;
+    return `<svg class="art" viewBox="0 0 120 84" aria-hidden="true">${HOLO}<rect x="26" y="6" width="68" height="72" rx="6" fill="var(--paper)" stroke="var(--line)" stroke-width="1.5"/>${r}</svg>`; },
+  swap: () => `<svg class="art" viewBox="0 0 120 84" aria-hidden="true">${HOLO}${cardShape(18,16,34,48,-8,35,40,"url(#holo)",innerArt(18,16,34,48))}${cardShape(68,16,34,48,8,85,40,"var(--paper)",innerArt(68,16,34,48).replaceAll("#fff","var(--line)"))}<path d="M50 26h20l-5-5M70 58H50l5 5" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  search: () => `<svg class="art" viewBox="0 0 120 84" aria-hidden="true">${HOLO}${cardShape(38,10,38,54,-6,57,37,"url(#holo)",innerArt(38,10,38,54))}<circle cx="78" cy="56" r="13" fill="var(--paper)" fill-opacity=".85" stroke="var(--navy)" stroke-width="3"/><path d="m88 66 9 9" stroke="var(--navy)" stroke-width="4" stroke-linecap="round"/></svg>`,
+  receipt: () => `<svg class="art" viewBox="0 0 120 84" aria-hidden="true">${HOLO}<path d="M40 8h40v68l-6.6-4-6.7 4-6.7-4-6.7 4-6.6-4-6.7 4z" fill="var(--paper)" stroke="var(--line)" stroke-width="1.5"/><rect x="47" y="18" width="26" height="4" rx="2" fill="var(--line)"/><rect x="47" y="28" width="20" height="4" rx="2" fill="var(--line)"/><rect x="47" y="38" width="23" height="4" rx="2" fill="var(--line)"/><rect x="47" y="52" width="26" height="8" rx="2" fill="url(#holo)"/></svg>`,
+  "fan-big": () => `${HOLO}${cardShape(45,30,74,104,-20,82,82,"rgba(255,255,255,.1)","").replace('stroke="var(--line)"','stroke="rgba(255,255,255,.35)"')}${cardShape(111,30,74,104,18,148,82,"rgba(255,255,255,.1)","").replace('stroke="var(--line)"','stroke="rgba(255,255,255,.35)"')}${cardShape(78,18,74,104,0,115,70,"url(#holo)",innerArt(78,18,74,104)).replace('stroke="var(--line)"','stroke="#fff" stroke-opacity=".9"')}`
+};
+const emptyT = (art, title, text) => `<tbody><tr><td class="empty">${ART[art]()}<b>${title}</b>${text}</td></tr></tbody>`;
+const empty = (art, title, text, colspan) => `<tbody><tr><td class="empty" ${colspan?`colspan="${colspan}"`:""}>${ART[art]()}<b>${title}</b>${text}</td></tr></tbody>`;
+const condBadge = c => c ? `<span class="cg ${esc(c)}">${esc(c)}</span>` : "";
 
 // ---------- helpers ----------
 const $ = s => document.querySelector(s);
@@ -517,9 +674,9 @@ function renderCatStatus(){
 
 // ---------- component: catalog search (game tabs + box + results with pictures) ----------
 function mountCatSearch(root, onPick, opts={}){
-  root.innerHTML = `${opts.title?`<div class="panel-h"><h2>${esc(opts.title)}</h2></div>`:""}
+  root.innerHTML = `${opts.title?`<div class="panel-h"><h2><span class="ic" data-icon="search"></span>${esc(opts.title)}</h2></div>`:""}
     <div class="seg" data-games style="margin-bottom:8px"></div>
-    <input data-q placeholder="Search: name, set or number — e.g. charizard base, 4/102" autocomplete="off">
+    <div class="search"><i data-icon="search"></i><input data-q placeholder="Name, set or number, e.g. charizard base or 4/102" autocomplete="off"></div>
     <div class="cat-status" data-st></div>
     <div class="cres-list" data-res style="${opts.maxh?`max-height:${opts.maxh}`:""}"></div>`;
   const gameEl = root.querySelector("[data-games]"), qEl = root.querySelector("[data-q]"), resEl = root.querySelector("[data-res]"), st = root.querySelector("[data-st]");
@@ -529,7 +686,7 @@ function mountCatSearch(root, onPick, opts={}){
     const gs = games(); if(!gs.some(([k])=>k===game)) game = gs[0] ? gs[0][0] : "pokemon";
     gameEl.innerHTML = gs.map(([k,l]) => `<button type="button" data-g="${k}" class="${k===game?"on":""}">${esc(l)}</button>`).join("");
   };
-  const hint = () => { resEl.innerHTML = `<div class="empty">Type at least 2 letters. Hover a picture to see it large.</div>`; st.textContent = ""; };
+  const hint = () => { resEl.innerHTML = `<div class="empty">${ART.search()}<b>Look up any card</b>Type a name, set or number. Hover a picture to see it large.</div>`; st.textContent = ""; };
   gameEl.onclick = e => { const b=e.target.closest("[data-g]"); if(!b) return; game=b.dataset.g; lsSet("cd-game",game); drawGames(); run(); qEl.focus(); };
   const run = async () => {
     const q = qEl.value.trim(), my = ++seq;
@@ -544,7 +701,7 @@ function mountCatSearch(root, onPick, opts={}){
       const ss = subs(p);
       return `<div class="cres" data-i="${i}">${thumb(p.productId, true)}
         <div class="nm">${esc(p.name)}</div><div class="px">${ss.length?money(Math.max(...ss.map(s=>s[1]))):"—"}</div>
-        <div class="meta">${esc([p.setName+(p.setAbbr?` (${p.setAbbr})`:""), p.number?"#"+p.number:"", p.rarity, p.year].filter(Boolean).join(" · "))}${isVintageYear(p.year)?` <span class="chip warn">vintage</span>`:""}</div>
+        <div class="meta">${esc([p.setName+(p.setAbbr?` (${p.setAbbr})`:""), p.number?"#"+p.number:"", p.rarity, p.year].filter(Boolean).join(" · "))}${isVintageYear(p.year)?` <span class="chip vin">vintage</span>`:""}</div>
         ${ss.length>1?`<div class="prts">${ss.map(([s,v])=>`<button type="button" class="prt" data-i="${i}" data-s="${esc(s)}">${esc(s)} ${money(v)}</button>`).join("")}</div>`:""}</div>`;
     }).join("") : `<div class="empty">No ${esc((games().find(g=>g[0]===game)||["",""])[1])} cards match “${esc(q)}”. Try another spelling or game, or enter it by hand.</div>`;
     resEl.scrollTop = 0;
@@ -553,13 +710,13 @@ function mountCatSearch(root, onPick, opts={}){
   let t; qEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 160); });
   qEl.addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); clearTimeout(t); run().then(() => { if(results[0]) pick(results[0]); }); } });
   resEl.onclick = e => { const b = e.target.closest("[data-i]"); if(!b) return; const p = results[Number(b.dataset.i)]; if(p) pick(p, b.dataset.s); };
-  drawGames(); hint();
+  paintIcons(root); drawGames(); hint();
   return { refresh: drawGames, clear(){ qEl.value=""; results=[]; hint(); }, focus(){ qEl.focus(); qEl.select(); }, setQuery(v){ qEl.value=v; run(); } };
 }
 
 // ---------- component: card entry (picked card + condition, qty, price) ----------
 function mountEntry(root, { title, addLabel, onAdd, onFocusSearch }){
-  root.innerHTML = `<div class="panel-h"><h2>${esc(title)}</h2></div>
+  root.innerHTML = `<div class="panel-h"><h2><span class="ic" data-icon="card"></span>${esc(title)}</h2></div>
   <form autocomplete="off">
     <div class="entry-top">
       <div class="entry-img" data-img>Pick a card from the search, or type it in</div>
@@ -570,19 +727,21 @@ function mountEntry(root, { title, addLabel, onAdd, onFocusSearch }){
       </div>
     </div>
     <div class="entry-row">
-      <div><label>Condition</label><div class="seg" data-cond>${CONDS.map(c=>`<button type="button" data-c="${c}" class="${c==="NM"?"on":""}">${c}</button>`).join("")}</div></div>
+      <div><label>Condition</label><div class="seg cond" data-cond>${CONDS.map(c=>`<button type="button" data-c="${c}" class="${c==="NM"?"on":""}">${c}</button>`).join("")}</div></div>
       <div><label>Type</label><select name="kind">${KINDS.map(k=>`<option>${k}</option>`).join("")}</select></div>
       <div><label data-mlabel>Market $ (each)</label><input name="market" type="number" step="0.01" min="0" required></div>
       <div><label>Qty</label><input name="qty" type="number" min="1" value="1"></div>
     </div>
     <div class="row"><span class="muted small" data-calc></span><span class="spacer"></span><button type="button" class="btn" data-clear>Clear</button><button class="btn primary" type="submit">${esc(addLabel)}</button></div>
   </form>`;
+  paintIcons(root);
   const f = root.querySelector("form"), imgBox = root.querySelector("[data-img]"), info = root.querySelector("[data-info]"), look = root.querySelector("[data-look]"), condEl = root.querySelector("[data-cond]");
   let pick = null, typed = false, cond = "NM";
   const setCond = c => { cond = c; condEl.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.c===c)); recalc(); };
   condEl.onclick = e => { const b=e.target.closest("[data-c]"); if(b) setCond(b.dataset.c); };
   const updLook = () => { look.style.display = f.custom.checked ? "none" : ""; look.href = pick ? productUrl(pick.productId) : tcgUrl(f.name.value.trim(), f.set.value.trim()); look.textContent = pick ? "Open on TCGplayer ↗" : "Look up on TCGplayer ↗"; };
   const drawPick = () => {
+    imgBox.classList.toggle("has", !!pick);
     imgBox.innerHTML = pick ? `<img src="${imgSmall(pick.productId)}" data-peek="${pick.productId}" data-zoom alt="" onerror="this.parentNode.textContent='No picture'">` : "Pick a card from the search, or type it in";
     info.innerHTML = pick ? `<b>${esc(pick.sub||"")}</b>${pick.sub?" · ":""}${pick.nm?`near-mint market <b>${money(pick.nm)}</b>`:"no TCGplayer price — type your own"}${typed?` · <span class="chip warn">your price</span> <button type="button" class="btn link small" data-unlock>use market</button>`:""}` : "";
     const u = info.querySelector("[data-unlock]"); if(u) u.onclick = () => { typed = false; recalc(); drawPick(); };
@@ -625,8 +784,9 @@ function mountEntry(root, { title, addLabel, onAdd, onFocusSearch }){
 // ---------- component: inventory picker (search your stock, click to add) ----------
 const pickers = [];
 function mountInvPicker(root, { onPick, inCart }){
-  root.innerHTML = `<input data-q placeholder="Search your inventory…" autocomplete="off" style="margin-bottom:8px">
+  root.innerHTML = `<div class="search" style="margin-bottom:10px"><i data-icon="search"></i><input data-q placeholder="Search your stock…" autocomplete="off"></div>
     <div class="tbl-wrap" style="max-height:calc(100vh - 260px);margin:0 -16px -14px;border-top:1px solid var(--line)"><table class="tbl" data-t></table></div>`;
+  paintIcons(root);
   const qEl = root.querySelector("[data-q]"), tEl = root.querySelector("[data-t]");
   let list = [];
   const draw = () => {
@@ -636,8 +796,8 @@ function mountInvPicker(root, { onPick, inCart }){
     const shown = list.slice(0, 80);
     tEl.innerHTML = shown.length ? `<thead><tr><th></th><th>Card</th><th>Cond</th><th class="n">Left</th><th class="n">Paid</th><th class="n">Market</th></tr></thead><tbody>` + shown.map((c,i) => {
       const used = inCart(c.id), left = (c.qty||0) - used;
-      return `<tr class="tap" data-i="${i}" style="${left<=0?"opacity:.45":""}"><td class="thc">${thumb(c.productId)}</td><td><div class="nm">${esc(c.name)}</div><div class="sub">${esc(desc(c))}</div></td><td>${esc(c.cond||"")}</td><td class="n">${left}${used?` <span class="muted small">(+${used})</span>`:""}</td><td class="n">${money(c.cost)}</td><td class="n"><b>${money(c.market)}</b></td></tr>`;
-    }).join("") + `</tbody>` : `<tbody><tr><td class="empty">${S.cards.some(c=>c.qty>0) ? "No matching cards in stock." : "No cards in stock yet."}</td></tr></tbody>`;
+      return `<tr class="tap" data-i="${i}" style="${left<=0?"opacity:.45":""}"><td class="thc">${thumb(c.productId)}</td><td><div class="nm">${esc(c.name)}</div><div class="sub">${esc(desc(c))}</div></td><td>${condBadge(c.cond)}</td><td class="n">${left}${used?` <span class="muted small">(+${used})</span>`:""}</td><td class="n">${money(c.cost)}</td><td class="n"><b>${money(c.market)}</b></td></tr>`;
+    }).join("") + `</tbody>` : (S.cards.some(c=>c.qty>0) ? empty("search","Nothing matches","Try part of the name or the set.") : empty("fan","No cards in stock yet","Buy or add some cards first."));
   };
   qEl.addEventListener("input", draw);
   qEl.addEventListener("keydown", e => { if(e.key==="Enter" && list[0]){ e.preventDefault(); onPick(list[0]); } });
@@ -667,25 +827,25 @@ function renderInventory(){
   let units=0, cost=0, mkt=0;
   inStock.forEach(c => { units+=c.qty; cost+=c.cost*c.qty; mkt+=(c.market||0)*c.qty; });
   $("#inv-stats").innerHTML = `
-    <div class="stat"><div class="k">Cards in stock</div><div class="v">${units.toLocaleString()}</div></div>
-    <div class="stat"><div class="k">Paid for stock</div><div class="v">${money(cost)}</div></div>
-    <div class="stat"><div class="k">Market value</div><div class="v">${money(mkt)}</div></div>
-    <div class="stat"><div class="k">Potential profit</div><div class="v ${mkt-cost>=0?"good":"bad"}">${money(mkt-cost)}</div></div>
-    <div class="stat"><div class="k">Prices older than 14 days</div><div class="v">${inStock.filter(c=>!c.custom && (!c.marketAt || Date.now()-c.marketAt>14*86400000)).length}</div></div>`;
+    <div class="stat">${svgIcon("stack","bg")}<div class="k">Cards in stock</div><div class="v">${units.toLocaleString()}</div></div>
+    <div class="stat">${svgIcon("coins","bg")}<div class="k">Paid for stock</div><div class="v">${money(cost)}</div></div>
+    <div class="stat">${svgIcon("tag","bg")}<div class="k">Market value</div><div class="v">${money(mkt)}</div></div>
+    <div class="stat hero">${svgIcon("trend","bg")}<div class="k">Potential profit</div><div class="v ${mkt-cost>=0?"good":"bad"}">${money(mkt-cost)}</div></div>
+    <div class="stat">${svgIcon("hourglass","bg")}<div class="k">Prices older than 14 days</div><div class="v">${inStock.filter(c=>!c.custom && (!c.marketAt || Date.now()-c.marketAt>14*86400000)).length}</div></div>`;
   const q = $("#inv-search").value.trim().toLowerCase(), showSold = $("#inv-sold").checked;
   const list = S.cards.filter(c => (showSold || (c.qty||0)>0) && (!q || (c.name+" "+(c.set||"")+" "+(c.sub||"")).toLowerCase().includes(q)));
   const k = ui.invSort, d = ui.invDir;
   list.sort((a,b) => { const x=invVal(a,k), y=invVal(b,k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * d; });
   $("#inv-count").textContent = `${list.length} line${list.length===1?"":"s"}`;
   const head = `<thead><tr>${INV_COLS.map(([l,key],i) => `<th class="${key?"sort":""} ${key===k?"sorted":""} ${i>=3&&i<=8?"n":""}" ${key?`data-s="${key}"`:""}>${l}${key===k?(d>0?" ▲":" ▼"):""}</th>`).join("")}<th></th></tr></thead>`;
-  if(!list.length){ $("#inv-table").innerHTML = head + `<tbody><tr><td colspan="12" class="empty">${S.cards.length? "No cards match." : "No cards yet. Add cards here, or complete a purchase on the Buy tab."}</td></tr></tbody>`; return; }
+  if(!list.length){ $("#inv-table").innerHTML = head + (S.cards.length ? empty("search","No cards match","Try part of the name, the set, or show sold cards.",12) : empty("fan","Your inventory is empty","Add a card here, or complete a purchase on the Buy tab and it lands here.",12)); return; }
   $("#inv-table").innerHTML = head + "<tbody>" + list.map(c => {
     const fl = floorOf(c.cost), sug = suggestedOf(c), prof = (c.market||0) - c.cost, pctP = c.cost>0 ? Math.round(prof/c.cost*100) : 0;
     const stale = !c.custom && (!c.marketAt || (Date.now()-c.marketAt) > 14*86400000);
     return `<tr class="tap" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}">
       <td class="thc">${thumb(c.productId)}</td>
-      <td class="cc"><div class="nm">${esc(c.name)} ${c.vintage?`<span class="chip warn">vintage</span>`:""} ${c.custom?`<span class="chip warn">custom</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
-      <td>${esc(c.cond||"")}</td>
+      <td class="cc"><div class="nm">${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""} ${c.custom?`<span class="chip warn">custom</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
+      <td>${condBadge(c.cond)}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
       <td class="n">${money(c.cost)}</td>
       <td class="n">${money(c.market)}${c.productId?(c.lock?` <span class="chip" title="You set this price">yours</span>`:""):""}</td>
@@ -784,12 +944,12 @@ function cardModal(c){
 
 // shared: a line in a buy-style list (customer's cards) → table
 function inLinesTable(items, pct, empty){
-  if(!items.length) return `<tbody><tr><td class="empty">${empty}</td></tr></tbody>`;
+  if(!items.length) return empty === "trade" ? emptyT("swap","Nothing from the customer yet","Search above, pick their card, set the condition and add it.") : emptyT("binder","Your buy list is empty","Search on the left, pick a printing, set the condition and add it.");
   return `<thead><tr><th></th><th>Card</th><th>Cond</th><th>Qty</th><th class="n">Market</th><th class="n">Each at ${pct}%</th><th class="n">Line</th><th></th></tr></thead><tbody>` +
     items.map((it,i) => { const each = r2(it.market*pct/100);
       return `<tr><td class="thc">${thumb(it.productId)}</td>
-        <td class="cc"><div class="nm">${esc(it.name)} ${it.vintage?`<span class="chip warn">vintage</span>`:""} ${it.custom?`<span class="chip warn">custom</span>`:""}</div><div class="sub">${esc(desc(it))}</div></td>
-        <td>${esc(it.cond)}</td><td>${qtyCell(i,it.qty)}</td><td class="n">${money(it.market)}</td><td class="n"><b>${money(each)}</b></td><td class="n">${money(each*it.qty)}</td>
+        <td class="cc"><div class="nm">${esc(it.name)} ${it.vintage?`<span class="chip vin">vintage</span>`:""} ${it.custom?`<span class="chip warn">custom</span>`:""}</div><div class="sub">${esc(desc(it))}</div></td>
+        <td>${condBadge(it.cond)}</td><td>${qtyCell(i,it.qty)}</td><td class="n">${money(it.market)}</td><td class="n"><b>${money(each)}</b></td><td class="n">${money(each*it.qty)}</td>
         <td><button class="x" data-rm="${i}" title="Remove">×</button></td></tr>`; }).join("") + "</tbody>";
 }
 function bumpList(e, items, save){
@@ -811,14 +971,14 @@ const buySearch = mountCatSearch($("#buy-search"), p => buyEntry.pick(p), { titl
 const buyEntry = mountEntry($("#buy-entry"), { title:"Card details", addLabel:"Add to buy list", onAdd: it => { buy.items.push(it); saveBuy(); renderBuy(); }, onFocusSearch: () => buySearch.focus() });
 function renderBuy(){
   pctButtons($("#buy-pcts"), BUY_PCTS, buy.pct, p => { buy.pct=p; saveBuy(); renderBuy(); });
-  $("#buy-table").innerHTML = inLinesTable(buy.items, buy.pct, "Your buy list is empty. Search on the left, pick a card, set its condition and add it.");
+  $("#buy-table").innerHTML = inLinesTable(buy.items, buy.pct, "buy");
   let mkt=0, pay=0, units=0;
   buy.items.forEach(it => { const each=r2(it.market*buy.pct/100); mkt+=it.market*it.qty; pay+=each*it.qty; units+=it.qty; });
   $("#buy-totals").innerHTML = `
     <div class="total"><span class="muted">${units} card${units===1?"":"s"} · market value</span><b>${money(mkt)}</b></div>
     <div class="total"><span>Your offer at <b>${buy.pct}%</b></span><span class="big">${money(pay)}</span></div>
     <div class="grid g2" style="margin:10px 0"><div><label>Seller (optional)</label><input id="buy-seller"></div><div><label>Paid with</label><select id="buy-method"><option>Cash</option><option>Card / digital</option><option>Other</option></select></div></div>
-    <button class="btn go" id="buy-go" ${buy.items.length?"":"disabled"}>Complete purchase · ${money(pay)}</button>`;
+    <button class="btn go buy" id="buy-go" ${buy.items.length?"":"disabled"}>Complete purchase · ${money(pay)}</button>`;
   $("#buy-go").onclick = completePurchase;
 }
 $("#buy-table").onclick = e => { if(bumpList(e, buy.items, saveBuy)) renderBuy(); };
@@ -844,14 +1004,14 @@ async function completePurchase(){
 function outLineCard(l){ return l.adhoc ? { id:null, name:l.name, set:"", cond:"", cost:l.cost, market:l.mkt, qty:999, adhoc:true } : S.cards.find(x=>x.id===l.cardId); }
 const outPrice = (l, c, pct) => l.price!=null ? l.price : r2((c.market||0)*pct/100);
 function outLinesTable(lines, pct, empty, compact){
-  if(!lines.length) return { html:`<tbody><tr><td class="empty">${empty}</td></tr></tbody>`, total:0, cost:0, units:0, below:0 };
+  if(!lines.length) return { html: compact ? emptyT("swap","Nothing from your side yet","Click cards in your stock above to give them in this trade.") : emptyT("receipt","No cards in this sale","Click cards in your stock on the left to add them."), total:0, cost:0, units:0, below:0 };
   let total=0, cost=0, units=0, below=0;
   const rows = lines.map((l,i) => {
     const c = outLineCard(l), p = outPrice(l,c,pct), fl = floorOf(c.cost), low = p < fl;
     total += p*l.qty; cost += c.cost*l.qty; units += l.qty; if(low) below++;
     return `<tr><td class="thc">${thumb(c.productId)}</td>
       <td class="cc"><div class="nm">${esc(c.name)} ${c.adhoc?`<span class="chip warn">not in inventory</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
-      <td>${esc(c.cond||"")}</td><td>${qtyCell(i,l.qty)}</td>
+      <td>${condBadge(c.cond)}</td><td>${qtyCell(i,l.qty)}</td>
       ${compact?"":`<td class="n muted">${money(c.cost)}</td>`}<td class="n">${c.adhoc?"—":money(c.market)}</td>
       <td class="n"><button class="pbtn ${low?"bad":""}" data-edit="${i}" title="Click to type your own price">${money(p)}</button>${l.price!=null?` <span class="chip">yours</span>`:""}<div class="small ${low?"bad":"muted"}">min ${money(fl)}</div></td>
       <td class="n ${p-c.cost>=0?"good":"bad"}">${money((p-c.cost)*l.qty)}</td>
@@ -946,7 +1106,7 @@ function renderTrade(){
   trade.outItems = trade.outItems.filter(l => S.cards.some(c=>c.id===l.cardId) || !S.loaded.cards);
   pctButtons($("#tr-in-pcts"), TIN_PCTS, trade.inPct, p => { trade.inPct=p; saveTrade(); renderTrade(); });
   pctButtons($("#tr-out-pcts"), TOUT_PCTS, trade.outPct, p => { trade.outPct=p; saveTrade(); renderTrade(); });
-  $("#tr-in-table").innerHTML = inLinesTable(trade.inItems, trade.inPct, "Search above, pick the customer's card, set its condition and add it.");
+  $("#tr-in-table").innerHTML = inLinesTable(trade.inItems, trade.inPct, "trade");
   const n = tradeNumbers();
   $("#tr-out-table").innerHTML = n.out.html;
   const who = n.diff > 0 ? "Customer pays you" : n.diff < 0 ? "You pay the customer" : "Even trade";
@@ -954,11 +1114,11 @@ function renderTrade(){
   $("#tradebar").innerHTML = `
     <div><div class="k">Their cards · ${n.inUnits} · market ${money(n.inMkt)}</div><div class="v good">${money(n.credit)}</div><div class="small muted">credit at ${trade.inPct}%</div></div>
     <div><div class="k">Your cards · ${n.out.units} · you paid ${money(n.out.cost)}</div><div class="v">${money(n.out.total)}</div><div class="small ${n.out.total-n.out.cost>=0?"good":"bad"}">profit on your cards ${money(n.out.total-n.out.cost)}${n.out.below?` · <span class="bad">${n.out.below} below minimum</span>`:""}</div></div>
-    <div><div class="k">${who}</div><div class="v ${n.diff<0?"bad":""}" style="font-size:26px">${money(Math.abs(n.diff))}</div><div class="small muted">difference in cash</div></div>
+    <div class="bal"><div class="k">${who}</div><div class="v ${n.diff<0?"bad":""}" style="font-size:30px">${money(Math.abs(n.diff))}</div><div class="small muted">difference in cash</div></div>
     <div class="grid g2" style="gap:8px">
       <div><label>Customer (optional)</label><input id="tr-cust" value="${esc(keepCust)}"></div>
       <div><label>Difference paid with</label><select id="tr-method">${["Cash","Card / digital","Other"].map(x=>`<option ${x===keepMethod?"selected":""}>${x}</option>`).join("")}</select></div>
-      <button class="btn go" id="tr-go" style="grid-column:1/-1" ${(trade.inItems.length||trade.outItems.length)?"":"disabled"}>Complete trade</button>
+      <button class="btn go trade" id="tr-go" style="grid-column:1/-1" ${(trade.inItems.length||trade.outItems.length)?"":"disabled"}>Complete trade</button>
       <button class="btn sm" id="tr-clear" style="grid-column:1/-1">Clear trade</button>
     </div>`;
   $("#tr-go").onclick = completeTrade;
@@ -1052,12 +1212,12 @@ function renderMoney(){
   renderCatStatus();
   const [f,t]=periodRange(ui.period), s=sums(f,t);
   $("#m-stats").innerHTML = `
-    <div class="stat"><div class="k">Sales (${s.nSales})${s.nTrades?` · incl. ${s.nTrades} trade${s.nTrades===1?"":"s"}`:""}</div><div class="v">${money(s.rev)}</div></div>
-    <div class="stat"><div class="k">Profit on cards sold</div><div class="v ${s.gross>=0?"good":"bad"}">${money(s.gross)}</div></div>
-    <div class="stat"><div class="k">Expenses</div><div class="v">${money(s.ex)}</div></div>
-    <div class="stat" style="border-color:var(--accent)"><div class="k">Net profit</div><div class="v ${s.net>=0?"good":"bad"}">${money(s.net)}</div></div>
-    <div class="stat"><div class="k">Spent buying cards</div><div class="v">${money(s.bought)}</div></div>
-    <div class="stat"><div class="k">Cash in − cash out</div><div class="v ${s.cash>=0?"good":"bad"}">${money(s.cash)}</div></div>`;
+    <div class="stat">${svgIcon("tag","bg")}<div class="k">Sales (${s.nSales})${s.nTrades?` · incl. ${s.nTrades} trade${s.nTrades===1?"":"s"}`:""}</div><div class="v">${money(s.rev)}</div></div>
+    <div class="stat">${svgIcon("trend","bg")}<div class="k">Profit on cards sold</div><div class="v ${s.gross>=0?"good":"bad"}">${money(s.gross)}</div></div>
+    <div class="stat">${svgIcon("receipt","bg")}<div class="k">Expenses</div><div class="v">${money(s.ex)}</div></div>
+    <div class="stat hero">${svgIcon("money","bg")}<div class="k">Net profit</div><div class="v ${s.net>=0?"good":"bad"}">${money(s.net)}</div></div>
+    <div class="stat">${svgIcon("cart","bg")}<div class="k">Spent buying cards</div><div class="v">${money(s.bought)}</div></div>
+    <div class="stat">${svgIcon("coins","bg")}<div class="k">Cash in − cash out</div><div class="v ${s.cash>=0?"good":"bad"}">${money(s.cash)}</div></div>`;
   const n=new Date(), rows=[];
   for(let i=0;i<12;i++){
     const a1=new Date(n.getFullYear(),n.getMonth()-i,1), b1=new Date(n.getFullYear(),n.getMonth()-i+1,1), m=sums(a1.getTime(),b1.getTime());
@@ -1078,7 +1238,7 @@ function renderActivity(){
       ${pur?`<div class="sub">In: ${names(pur.items)}</div>`:""}${sale?`<div class="sub">Out: ${names(sale.items)}</div>`:""}</td>
       <td class="n"><button class="btn sm danger" data-undo-trade="${x.id}">Undo</button></td></tr>`; }).join("");
   else html = by(S.expenses).map(x=>`<tr><td class="small muted" style="white-space:nowrap">${dayStr(x.at)}</td><td><b>${money(x.amount)}</b> <span class="muted small">· ${esc(x.cat)}</span><div class="sub">${esc(x.desc)}</div></td><td class="n"><button class="btn sm danger" data-del-exp="${x.id}">Delete</button></td></tr>`).join("");
-  el.innerHTML = `<tbody>${html || `<tr><td class="empty">Nothing here yet.</td></tr>`}</tbody>`;
+  el.innerHTML = html ? `<tbody>${html}</tbody>` : emptyT("receipt","Nothing here yet","Completed "+ui.act+" show up here.");
 }
 async function undoSaleCards(s){
   for(const it of s.items||[]){ if(!it.cardId) continue; const c=S.cards.find(x=>x.id===it.cardId);
@@ -1239,6 +1399,8 @@ $("#cat-offline").onclick = async () => {
 };
 if("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(e => console.warn("sw", e)));
 
+paintIcons();
+document.querySelectorAll("[data-art]").forEach(el => el.innerHTML = ART[el.dataset.art]());
 showTab(location.hash.slice(1) || "inventory");
 renderAll();
 loadManifest().then(() => { buySearch.refresh(); trSearch.refresh(); refreshInventoryPrices(); });
