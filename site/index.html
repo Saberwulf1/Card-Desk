@@ -1132,7 +1132,7 @@ function renderInventory(){
       <td>${condCell(c)}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
       <td class="n">${money(c.cost)}</td>
-      <td class="n">${money(c.market)}${c.productId&&c.lock&&!isGraded(c)?` <span class="chip" title="You set this price">yours</span>`:cpFresh(c)?` <span class="chip good" title="${esc(c.cpCond)} price from JustTCG, checked ${ago(c.cpAt)}">${esc(c.cpCond)}</span>`:""}</td>
+      <td class="n">${money(c.market)}${c.productId&&c.lock&&!isGraded(c)?` <span class="chip" title="You set this price">yours</span>`:""}</td>
       <td class="n muted">${money(fl)}</td>
       <td class="n"><b>${money(sug)}</b></td>
       <td class="n ${prof>=c.cost*minP()/100?"good":"bad"}">${prof>=0?"+":""}${money(prof)} <span class="small">(${pctP}%)</span></td>
