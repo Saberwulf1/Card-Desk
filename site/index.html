@@ -587,6 +587,8 @@
       </div>
     </div>
     <div class="stats" id="m-stats"></div>
+    <div class="row" style="margin:-4px 0 10px"><h2 style="margin:0;font:800 17px/1.2 var(--display)">Stock you're holding</h2><span class="muted small">right now, whatever the period</span><span class="spacer"></span><span id="m-backfill"></span></div>
+    <div class="stats" id="m-stock"></div>
     <div class="cols c-money">
       <div class="stack">
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>By month</h2></div><div id="m-months" class="tbl-wrap"></div></div>
@@ -1182,7 +1184,7 @@ function cardModal(c, defaults={}){
           <div><label id="cm-mlabel">${c.custom||isGraded(c)?"Your value $":"Market price $"}</label><input name="market" type="number" step="0.01" min="0" required value="${c.market}"></div>
           <div style="align-self:end;padding-bottom:6px"><a id="cm-look" target="_blank" rel="noopener"></a> <a id="cm-ebay" class="graded-only" target="_blank" rel="noopener" style="display:inline">eBay sold ↗</a></div>
           <div style="grid-column:1/-1;margin-top:-4px" class="paybtns" id="cm-pay" title="Fill “I paid” from the market price (your value for slabs)">${[100,95,90,80,70,60].map(p=>`<button type="button" data-p="${p}">${p===100?"Market":p+"%"}</button>`).join("")}</div>
-          <div style="grid-column:1/-1" class="row"><label class="chk"><input type="checkbox" name="vintage" ${c.vintage?"checked":""}> Vintage</label><label class="chk"><input type="checkbox" name="custom" ${c.custom?"checked":""}> Not on TCGplayer</label></div>
+          <div style="grid-column:1/-1" class="row"><label class="chk"><input type="checkbox" name="vintage" ${c.vintage?"checked":""}> Vintage</label><label class="chk"><input type="checkbox" name="custom" ${c.custom?"checked":""}> Not on TCGplayer</label>${isNew?`<label class="chk" title="Adds it under Money › Purchases and Spent buying cards"><input type="checkbox" name="spent" checked> Count what I paid as money spent today</label>`:""}</div>
           <div style="grid-column:1/-1" class="muted" id="cm-calc"></div>
           <div style="grid-column:1/-1" class="row">
             ${isNew?"":`<button type="button" class="btn danger" id="cm-del">Delete</button>`}
@@ -1265,7 +1267,9 @@ function cardModal(c, defaults={}){
       m.querySelector("#cm-x").onclick = closeModal;
       if(!isNew) m.querySelector("#cm-del").onclick = async () => {
         if(!(await ask("Delete card?", `Remove <b>${esc(c.name)}</b> from inventory? Sales already recorded are kept.`, "Delete", true))) return;
-        if(needDb()) safe(() => db.collection("cards").doc(c.id).delete(), "Card deleted");
+        if(needDb()) safe(async () => { await db.collection("cards").doc(c.id).delete();
+          const pur = c.purchaseId && S.purchases.find(p => p.id===c.purchaseId && p.manual);
+          if(pur && !S.sales.some(sl => (sl.items||[]).some(i => i.cardId===c.id))) await db.collection("purchases").doc(pur.id).delete(); }, "Card deleted");
       };
       f.onsubmit = async e => { e.preventDefault(); if(!needDb()) return;
         const newMarket = r2(f.market.value);
@@ -1276,8 +1280,14 @@ function cardModal(c, defaults={}){
         else if(!isNew && c.productId) Object.assign(data, { productId:null, sub:null, game:null, nm:null, lock:false });
         if(isNew || newMarket !== c.market) data.marketAt = Date.now();
         closeModal();
-        if(isNew) await safe(() => db.collection("cards").doc().set({...data, addedAt:Date.now(), marketAt:Date.now()}), "Card added");
-        else await safe(() => db.collection("cards").doc(c.id).update(data), "Saved");
+        if(isNew) await safe(async () => { const now = Date.now(), card = {...data, addedAt:now, marketAt:now};
+            if(f.spent.checked && data.cost > 0 && data.qty > 0){ const pref = db.collection("purchases").doc(); card.purchaseId = pref.id; await pref.set(manualPurchase(card, data.qty, now)); }
+            await db.collection("cards").doc().set(card); }, "Card added");
+        else await safe(async () => { await db.collection("cards").doc(c.id).update(data);
+            // keep a hand-entered purchase in step with the card's price
+            const pur = c.purchaseId && S.purchases.find(p => p.id===c.purchaseId && p.manual);
+            if(pur && data.cost !== r2(pur.items[0].each)){ const q = pur.items[0].qty; await db.collection("purchases").doc(pur.id).update({ items:[{ ...pur.items[0], each:data.cost, name:data.name, market:data.market }], totalPaid:r2(data.cost*q), totalMarket:r2(data.market*q) }); }
+          }, "Saved");
       };
     }, true);
 }
@@ -1634,12 +1644,40 @@ function sums(from,to){
   const ex=exp.reduce((s,x)=>s+(x.amount||0),0), bought=pur.reduce((s,x)=>s+(x.totalPaid||0),0);
   return { rev, cogs, gross:rev-cogs, ex, net:rev-cogs-ex, bought, cash:rev-bought-ex, nSales:sales.length, nTrades:S.trades.filter(inR).length };
 }
+// cards added in the card window rather than bought on the Buy tab: record what you paid as a purchase
+const manualPurchase = (c, qty, at) => { const it = { name:c.name, set:c.set||"", cond:c.cond||"", market:Number(c.market)||0, qty, each:Number(c.cost)||0, kind:c.kind||"Card", custom:!!c.custom, vintage:!!c.vintage, ...gradedFields(c), ...(c.productId?{productId:c.productId}:{}) };
+  return { at, pct: it.market ? Math.round(it.each/it.market*100) : 100, seller:"", method:"Added by hand", manual:true, items:[it], totalMarket:r2(it.market*qty), totalPaid:r2(it.each*qty) }; };
+function handAdded(){
+  return S.cards.filter(c => !c.purchaseId && (Number(c.cost)||0) > 0).map(c => {
+    const sold = S.sales.reduce((x,sl) => x + (sl.items||[]).filter(i => i.cardId===c.id).reduce((y,i)=>y+(i.qty||0),0), 0);
+    const qty = (c.qty||0) + sold; return { c, qty, paid: r2((Number(c.cost)||0)*qty) };
+  }).filter(o => o.qty > 0);
+}
+$("#m-backfill").onclick = async e => {
+  if(!e.target.closest("#m-backfill-btn") || !needDb()) return;
+  const list = handAdded(); if(!list.length) return;
+  if(!(await ask("Count these as purchases?", `Records ${list.length} purchase${list.length===1?"":"s"} totalling <b>${money(list.reduce((x,o)=>x+o.paid,0))}</b>, one for each card you added by hand, dated the day you added it. They'll show in Spent buying cards and under Purchases, where you can delete any of them.`, "Count them"))) return;
+  await safe(async () => { for(const o of list){ const ref = db.collection("purchases").doc(); await ref.set(manualPurchase(o.c, o.qty, o.c.addedAt || Date.now())); await db.collection("cards").doc(o.c.id).update({ purchaseId:ref.id }); } }, "Purchases recorded");
+};
 function renderMoney(){
   const a = document.activeElement;
   if(!a || a.id!=="set-min") $("#set-min").value = minP();
   if(!a || !a.closest("#cond-table, #set-vyear")) drawCondTable();
   renderCatStatus();
   const [f,t]=periodRange(ui.period), s=sums(f,t);
+  // stock on hand (raw/sealed vs graded), including cards added by hand
+  const held = S.cards.filter(c => (c.qty||0) > 0), gr = held.filter(isGraded), rw = held.filter(c => !isGraded(c));
+  const tot = (a, k) => a.reduce((x,c) => x + (Number(c[k])||0)*(c.qty||0), 0);
+  const gP = tot(gr,"cost"), gV = tot(gr,"market"), rP = tot(rw,"cost"), rV = tot(rw,"market"), up = gV+rV-gP-rP;
+  const nUnits = a => a.reduce((x,c)=>x+(c.qty||0),0);
+  $("#m-stock").innerHTML = `
+    <div class="stat">${svgIcon("slab","bg")}<div class="k">Graded slabs (${nUnits(gr)}) · paid</div><div class="v">${money(gP)}</div></div>
+    <div class="stat">${svgIcon("slab","bg")}<div class="k">Graded slabs · your value</div><div class="v">${money(gV)}</div></div>
+    <div class="stat">${svgIcon("coins","bg")}<div class="k">Raw &amp; sealed (${nUnits(rw)}) · paid</div><div class="v">${money(rP)}</div></div>
+    <div class="stat">${svgIcon("coins","bg")}<div class="k">Raw &amp; sealed · market</div><div class="v">${money(rV)}</div></div>
+    <div class="stat hero">${svgIcon("trend","bg")}<div class="k">Profit if all sold at value</div><div class="v ${up>=0?"good":"bad"}">${up>=0?"+":""}${money(up)}</div></div>`;
+  const orphans = handAdded();
+  $("#m-backfill").innerHTML = orphans.length ? `<button class="btn sm" id="m-backfill-btn" title="Records a purchase on the day each card was added, so it counts in Spent buying cards">Count ${orphans.length} hand-added card${orphans.length===1?"":"s"} as purchases (${money(orphans.reduce((x,o)=>x+o.paid,0))})</button>` : "";
   $("#m-stats").innerHTML = `
     <div class="stat">${svgIcon("tag","bg")}<div class="k">Sales (${s.nSales})${s.nTrades?` · incl. ${s.nTrades} trade${s.nTrades===1?"":"s"}`:""}</div><div class="v">${money(s.rev)}</div></div>
     <div class="stat">${svgIcon("trend","bg")}<div class="k">Profit on cards sold</div><div class="v ${s.gross>=0?"good":"bad"}">${money(s.gross)}</div></div>
