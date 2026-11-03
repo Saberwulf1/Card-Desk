@@ -892,6 +892,14 @@ const catRows = results => results.map((p,i) => {
     <div class="meta">${esc([p.setName+(p.setAbbr?` (${p.setAbbr})`:""), p.number?"#"+p.number:"", p.rarity, p.year].filter(Boolean).join(" · "))}${isVintageYear(p.year)?` <span class="chip vin">vintage</span>`:""}</div>
     ${ss.length>1?`<div class="prts">${ss.map(([s,v])=>`<button type="button" class="prt" data-i="${i}" data-s="${esc(s)}">${esc(s)} ${money(v)}</button>`).join("")}</div>`:""}</div>`;
 }).join("");
+// when a search finds nothing, look in the other games: [[key, label, count]]
+async function otherGames(game, q){
+  if(!CAT.manifest) return [];
+  const gs = Object.entries(CAT.manifest.games).filter(([k,g]) => k!==game && !g.error);
+  const found = await Promise.all(gs.map(([k,g]) => catSearch(k, q).then(r => [k, g.label, r.length]).catch(() => [k, g.label, 0])));
+  return found.filter(x => x[2]);
+}
+const otherGamesHTML = found => found.length ? `<div style="margin-top:8px">Found in ${found.map(([k,l,n]) => `<button type="button" class="btn sm" data-sw="${k}">${esc(l)} (${n===60?"60+":n})</button>`).join(" ")}</div>` : "";
 // "charizard psa 10" → grader PSA, grade 10 (and the name without it)
 const GRADE_RE = /(^|[^a-z0-9])(psa|bgs|beckett|cgc|sgc|tag|ace)\s*-?\s*(10|[1-9](?:\.5)?)(?![\d.])/i;
 function parseGrade(q){
@@ -932,14 +940,15 @@ function mountCatSearch(root, onPick, opts={}){
     catch(e){ console.error(e); if(my===seq){ resEl.innerHTML = `<div class="empty">Couldn't load the catalog. Check your connection and try again.</div>`; st.textContent=""; open(true); } return; }
     if(my !== seq) return;
     st.textContent = results.length ? `${results.length===60?"Top 60":results.length} result${results.length===1?"":"s"} · click a printing to pick it (Enter picks the first)` : "";
-    resEl.innerHTML = results.length ? catRows(results) : `<div class="empty">No ${esc((games().find(g=>g[0]===game)||["",""])[1])} cards match “${esc(q)}”. Try another spelling or game, or add it by hand.</div>`;
+    resEl.innerHTML = results.length ? catRows(results) : `<div class="empty">No ${esc((games().find(g=>g[0]===game)||["",""])[1])} cards match “${esc(q)}”. Try another spelling or game, or add it by hand.<span data-other></span></div>`;
+    if(!results.length) otherGames(game, q).then(found => { const o = resEl.querySelector("[data-other]"); if(my===seq && o) o.innerHTML = otherGamesHTML(found); });
     resEl.scrollTop = 0; open(true);
   };
   const pick = (p, sub) => { const ss = subs(p); sub = sub || (ss[0] ? ss[0][0] : ""); onPick({ ...p, sub, nm:(p.prices||{})[sub] || 0 }); if(dd){ qEl.value=""; results=[]; hint(); qEl.focus(); } };
   let t; qEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(run, 160); });
   qEl.addEventListener("keydown", e => { if(e.key==="Enter"){ e.preventDefault(); clearTimeout(t); run().then(() => { if(results[0]) pick(results[0]); }); } if(e.key==="Escape") open(false); });
   if(dd){ qEl.addEventListener("focus", () => { if(results.length) open(true); }); document.addEventListener("mousedown", e => { if(!root.contains(e.target)) open(false); }); }
-  resEl.onclick = e => { const b = e.target.closest("[data-i]"); if(!b) return; const p = results[Number(b.dataset.i)]; if(p) pick(p, b.dataset.s); };
+  resEl.onclick = e => { const sw = e.target.closest("[data-sw]"); if(sw){ setGame(sw.dataset.sw); return; } const b = e.target.closest("[data-i]"); if(!b) return; const p = results[Number(b.dataset.i)]; if(p) pick(p, b.dataset.s); };
   paintIcons(root); drawGames(); hint();
   return { refresh: drawGames, clear(){ qEl.value=""; results=[]; hint(); }, focus(){ qEl.focus(); qEl.select(); }, setQuery(v){ qEl.value=v; run(); } };
 }
@@ -1231,8 +1240,9 @@ function cardModal(c, defaults={}){
         if(my !== seq) return;
         const gl = (CAT.manifest.games[game]||{}).label || game;
         st.textContent = results.length ? `${results.length===60?"Top 60":results.length} ${gl} result${results.length===1?"":"s"} · click one to link it` : "";
-        resEl.innerHTML = results.length ? catRows(results) : `<div class="empty">No ${esc(gl)} cards match “${esc(q)}”. Try another spelling or game, or keep typing it in yourself.</div>`;
+        resEl.innerHTML = results.length ? catRows(results) : `<div class="empty">No ${esc(gl)} cards match “${esc(q)}”. Try another spelling or game, or keep typing it in yourself.<span data-other></span></div>`;
         resEl.scrollTop = 0;
+        if(!results.length){ const found = await otherGames(game, q); const o = resEl.querySelector("[data-other]"); if(my===seq && o) o.innerHTML = otherGamesHTML(found); }
       };
       const pickCard = (p, sub) => {
         const ss = subs(p); sub = sub || (ss[0] ? ss[0][0] : "");
@@ -1244,7 +1254,8 @@ function cardModal(c, defaults={}){
       };
       gsel.onchange = () => { game = gsel.value; lsSet("cd-game", game); search(); f.name.focus(); };
       sr.querySelector("[data-close]").onclick = closeSr;
-      resEl.onclick = e => { const b = e.target.closest("[data-i]"); if(!b) return; const p = results[Number(b.dataset.i)]; if(p) pickCard(p, b.dataset.s); };
+      resEl.onclick = e => { const sw = e.target.closest("[data-sw]"); if(sw){ game = sw.dataset.sw; lsSet("cd-game", game); drawGames(); search(); f.name.focus(); return; }
+        const b = e.target.closest("[data-i]"); if(!b) return; const p = results[Number(b.dataset.i)]; if(p) pickCard(p, b.dataset.s); };
       const applyGrade = () => { const pg = parseGrade(f.name.value); if(!pg) return;
         if(!g()){ f.kind.value = "Graded"; f.kind.dispatchEvent(new Event("change")); }
         f.grader.value = GRADERS.includes(pg.grader) ? pg.grader : "Other"; f.grade.value = pg.grade; ebay(); };

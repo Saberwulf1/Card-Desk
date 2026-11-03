@@ -29,6 +29,7 @@ import urllib.request
 BASE = "https://tcgcsv.com/tcgplayer"
 GAMES = {  # key: (categoryId, label)
     "pokemon": (3, "Pokémon"),
+    "pokemonjp": (85, "Pokémon Japan"),  # TCGplayer "Pokemon Japan"; id checked by name at build time
     "yugioh": (2, "Yu-Gi-Oh!"),
     "onepiece": (68, "One Piece"),
     "gundam": (86, "Gundam"),
@@ -173,6 +174,20 @@ def price_check(manifest, prev_man, prev_prices):
                     pricesChangedAt=now if n else (prev_man or {}).get("pricesChangedAt") or (prev_man or {}).get("builtAt"))
 
 
+def check_categories():
+    """Confirm each categoryId by name on TCGCSV (fixes the id if TCGplayer renumbers)."""
+    want = {"pokemonjp": "pokemon japan"}
+    try:
+        cats = {c["name"].strip().lower(): c["categoryId"] for c in get(f"{BASE}/categories")["results"]}
+    except Exception as e:
+        print(f"  couldn't list categories ({e}); using built-in ids", file=sys.stderr)
+        return
+    for key, name in want.items():
+        if name in cats and cats[name] != GAMES[key][0]:
+            print(f"  {key}: category id {GAMES[key][0]} -> {cats[name]}", file=sys.stderr)
+            GAMES[key] = (cats[name], GAMES[key][1])
+
+
 def main():
     started = time.time()
     os.makedirs(OUT, exist_ok=True)
@@ -183,6 +198,7 @@ def main():
     except Exception:
         pass
     ok = True
+    check_categories()
     for key, (cat, label) in GAMES.items():
         print(f"{label}…", file=sys.stderr)
         try:

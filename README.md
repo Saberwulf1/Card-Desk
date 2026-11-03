@@ -1,6 +1,6 @@
 # Card Desk
 
-Inventory, buying and selling for a trading-card stand: Pokémon, Yu-Gi-Oh!, One Piece, Gundam and Riftbound.
+Inventory, buying and selling for a trading-card stand: Pokémon (English and Japanese), Yu-Gi-Oh!, One Piece, Gundam and Riftbound.
 
 - **App:** `site/index.html`, one page with no build step. It signs in with Google (Firebase Auth) and saves to Cloud Firestore, with an offline cache so it works at shows without signal.
 - **Prices:** `sync/build_catalog.py` downloads the free nightly TCGplayer data from [TCGCSV](https://tcgcsv.com) once a day and writes `site/catalog/` (searchable card list + price lookup). It never runs in the browser.
