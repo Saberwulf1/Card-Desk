@@ -4,7 +4,7 @@
 // - Catalog shards (?v=build): cache first; one copy per file (old builds dropped);
 //   offline falls back to any cached build of the same file.
 // - manifest.json: network first, cached copy when offline.
-const APP = "cd-app-v1", CAT = "cd-catalog";
+const APP = "cd-app-v2", CAT = "cd-catalog";
 const SHELL = ["./", "index.html", "vendor/firebase.js", "app.webmanifest", "icon.svg", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", e => {
