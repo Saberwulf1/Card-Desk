@@ -13,6 +13,15 @@ Shard row format (JSON array per product):
 Sets file per game: {groupId: [name, abbreviation, releaseYear]}
 Price lookup (all games): prices/{productId % 32}.json = {productId: {subType: market}}
   used by the app to refresh inventory cards that carry a productId.
+
+Change check: if PREV_SITE is set (the live site's base URL), the previous
+manifest and price files are downloaded and compared. The manifest records
+  changed         True/False: did any price differ from the previous update
+  changedCount    how many products' prices differ
+  updateAt        when this price update ran (ms)
+  pricesChangedAt when prices last actually changed (ms)
+A build on a code push whose prices match the live site keeps the previous
+update's status, so pushing code doesn't look like a fresh price update.
 """
 import gzip, json, os, re, sys, time, unicodedata, concurrent.futures as cf
 import urllib.request
@@ -127,6 +136,43 @@ def build_game(key, cat):
     return {"cat": cat, "products": len(rows), "groups": len(groups), "failedGroups": errs, "shards": sorted(shards)}
 
 
+def fetch_prev(base):
+    """Previous manifest + price buckets from the live site, or (None, None)."""
+    if not base:
+        return None, None
+    base = base.rstrip("/") + "/catalog/"
+    bust = f"?t={int(time.time())}"
+    try:
+        man = get(base + "manifest.json" + bust, tries=2)
+        prices = {}
+        for b in range(man.get("priceBuckets") or NBUCKET):
+            for pid, v in get(f"{base}prices/{b}.json{bust}", tries=3).items():
+                prices[int(pid)] = v
+        return man, prices
+    except Exception as e:
+        print(f"  previous prices not available ({e}); can't tell what changed", file=sys.stderr)
+        return None, None
+
+
+def price_check(manifest, prev_man, prev_prices):
+    now, event = manifest["builtAt"], os.environ.get("GITHUB_EVENT_NAME", "")
+    cur = {pid: v for b in PRICES.values() for pid, v in b.items()}
+    if prev_prices is None:
+        manifest.update(changed=None, changedCount=None, updateAt=now, pricesChangedAt=now)
+        return
+    n = sum(1 for pid in cur.keys() | prev_prices.keys() if cur.get(pid) != prev_prices.get(pid))
+    if n == 0 and event == "push" and prev_man:
+        # code push, same prices: keep the last real update's status
+        for k in ("changed", "changedCount", "updateAt", "pricesChangedAt"):
+            manifest[k] = prev_man.get(k)
+        manifest["updateAt"] = manifest["updateAt"] or prev_man.get("builtAt")
+        manifest["pricesChangedAt"] = manifest["pricesChangedAt"] or prev_man.get("builtAt")
+        manifest["checkedOnPush"] = True
+        return
+    manifest.update(changed=n > 0, changedCount=n, updateAt=now,
+                    pricesChangedAt=now if n else (prev_man or {}).get("pricesChangedAt") or (prev_man or {}).get("builtAt"))
+
+
 def main():
     started = time.time()
     os.makedirs(OUT, exist_ok=True)
@@ -159,6 +205,9 @@ def main():
     manifest["priceBuckets"] = NBUCKET
     manifest["builtAt"] = int(time.time() * 1000)
     manifest["ok"] = ok
+    prev_man, prev_prices = fetch_prev(os.environ.get("PREV_SITE", ""))
+    price_check(manifest, prev_man, prev_prices)
+    print(f"Price check: changed={manifest.get('changed')} count={manifest.get('changedCount')}", file=sys.stderr)
     manifest["seconds"] = round(time.time() - started)
     with open(os.path.join(OUT, "manifest.json"), "w") as fh:
         json.dump(manifest, fh, separators=(",", ":"), ensure_ascii=False)

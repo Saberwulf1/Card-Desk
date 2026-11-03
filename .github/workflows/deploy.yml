@@ -1,45 +1,85 @@
 name: Build prices and deploy
 
-# Nightly: download TCGCSV once, build the card catalog, publish the site.
+# Daily at 6 AM Eastern: download TCGCSV once, build the card catalog, publish the site.
 # Also runs on every push to main, and by hand from the Actions tab.
+# After every run a notification says whether the price update worked and whether prices changed.
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "43 2 * * *"   # 02:43 UTC = 9:43 PM Eastern (10:43 PM in summer); TCGCSV refreshes ~20:00 UTC
+    # GitHub schedules are in UTC, so both are listed and the gate job keeps the one that is 6 AM in New York today:
+    - cron: "4 10 * * *"   # 6:04 AM EDT (summer)
+    - cron: "4 11 * * *"   # 6:04 AM EST (winter)
   workflow_dispatch:
 
 permissions:
   contents: write   # keepalive commit only
   pages: write
   id-token: write
+  issues: write     # notification comments
 
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
-  build:
+  gate:
     runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.g.outputs.run }}
+    steps:
+      - id: g
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHED: ${{ github.event.schedule }}
+        run: |
+          run=true
+          if [ "$EVENT" = schedule ]; then
+            tz=$(TZ=America/New_York date +%Z)   # EDT or EST
+            if [ "$SCHED" = "4 10 * * *" ] && [ "$tz" != EDT ]; then run=false; fi
+            if [ "$SCHED" = "4 11 * * *" ] && [ "$tz" != EST ]; then run=false; fi
+          fi
+          echo "New York is on $(TZ=America/New_York date +%Z); run=$run"
+          echo "run=$run" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+      count: ${{ steps.check.outputs.count }}
+      summary: ${{ steps.check.outputs.summary }}
+      errors: ${{ steps.check.outputs.errors }}
     steps:
       - uses: actions/checkout@v4
 
+      - id: pages
+        uses: actions/configure-pages@v5
+
       - name: Build catalog from TCGCSV
+        env:
+          PREV_SITE: ${{ steps.pages.outputs.base_url }}   # compare with the prices live now
         run: python3 sync/build_catalog.py site/catalog
 
       - name: Check every game built
+        id: check
         run: |
           python3 - <<'EOF'
-          import json, sys
+          import json, os, sys
           m = json.load(open("site/catalog/manifest.json"))
           bad = [k for k, g in m["games"].items() if g.get("error") or not g.get("products")]
           print({k: g.get("products") for k, g in m["games"].items()})
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"changed={json.dumps(m.get('changed'))}\n")
+              out.write(f"count={m.get('changedCount') or 0}\n")
+              out.write("summary=" + ", ".join(f"{g['label']} {g.get('products') or 0:,}" for g in m["games"].values()) + "\n")
+              out.write(f"errors={'' if m.get('ok') else 'some sets failed to download'}\n")
           if bad:
               sys.exit(f"Not deploying: these games failed to build: {bad}. Yesterday's site stays live.")
           EOF
           rm -f site/catalog/publish_files.json
 
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
@@ -65,3 +105,61 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # A comment on the "Price update notifications" issue after every run, @mentioning the owner,
+  # so GitHub sends an email / mobile push. If a NTFY_TOPIC secret is set, also a push via ntfy.sh.
+  notify:
+    needs: [gate, build, deploy]
+    if: always() && needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          EVENT: ${{ github.event_name }}
+          BUILD: ${{ needs.build.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+          CHANGED: ${{ needs.build.outputs.changed }}
+          COUNT: ${{ needs.build.outputs.count }}
+          SUMMARY: ${{ needs.build.outputs.summary }}
+          ERRORS: ${{ needs.build.outputs.errors }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          when=$(TZ=America/New_York date '+%a %b %-d, %-I:%M %p ET')
+          case "$EVENT" in schedule) why="daily update";; push) why="update after a code push";; *) why="update run by hand";; esac
+          if [ "$BUILD" = success ] && [ "$DEPLOY" = success ]; then
+            if [ "$CHANGED" = false ]; then
+              title="⚠️ Card Desk: prices didn't change"
+              body="The price $why ran ($when) but no prices changed from the previous update. TCGCSV may not have refreshed yet."
+              tags=warning
+            else
+              title="✅ Card Desk: prices updated"
+              if [ "$CHANGED" = true ]; then body="Price $why succeeded ($when): ${COUNT} prices changed."; else body="Price $why succeeded ($when)."; fi
+              tags=white_check_mark
+            fi
+            [ -n "$ERRORS" ] && body="$body Note: $ERRORS."
+            body="$body Cards: $SUMMARY."
+          else
+            title="❌ Card Desk: price update failed"
+            if [ "$BUILD" != success ]; then step="building prices"; else step="publishing the site"; fi
+            body="The price $why failed while $step ($when). Yesterday's prices stay live."
+            tags=x
+          fi
+          echo "$title — $body"
+
+          num=$(gh issue list --state open --search 'in:title "Price update notifications"' --json number -q '.[0].number')
+          if [ -z "$num" ]; then
+            url=$(gh issue create --title "Price update notifications" --body "Card Desk posts a comment here after every price update, so you get a GitHub notification. Unsubscribe or close this issue to stop.")
+            num=${url##*/}
+          fi
+          gh issue comment "$num" --body "**$title**
+
+          $body
+
+          [Run details]($RUN_URL) · @$OWNER"
+
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl -fsS -H "Title: ${title#* }" -H "Tags: $tags" -H "Click: $RUN_URL" -d "$body" "https://ntfy.sh/$NTFY_TOPIC" || true
+          fi

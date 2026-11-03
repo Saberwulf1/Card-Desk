@@ -60,6 +60,7 @@
   .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ADE96;box-shadow:0 0 0 3px rgba(74,222,150,.2)}
   .pill.warn::before{background:#F5B13D;box-shadow:0 0 0 3px rgba(245,177,61,.2)}
   .pill.offline::before{background:#F5B13D}
+  .pill.bad::before{background:#FF6B5E;box-shadow:0 0 0 3px rgba(255,107,94,.22)}
   .pill.off{display:none}
   .page{max-width:1500px;margin:0 auto;padding:22px 24px 90px}
   .view{display:none}.view.on{display:block;animation:in .18s ease-out}
@@ -101,7 +102,7 @@
   .stat.hero svg.bg{color:#fff;opacity:.1}
   .stat.hero .good{color:#5BE3A6}.stat.hero .bad{color:#FF8E84}
   .big{font:800 30px/1.1 var(--display);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
-  .good{color:var(--good)} .bad{color:var(--bad)} .muted{color:var(--muted)} .small{font-size:12.5px}
+  .good{color:var(--good)} .bad{color:var(--bad)} .warn-t{color:var(--warn)} .muted{color:var(--muted)} .small{font-size:12.5px}
 
   /* forms */
   label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:4px}
@@ -295,6 +296,14 @@
   .dd .empty{padding:16px}
   .dd .tbl th{background:var(--paper-2)}
   .dd-row{display:flex;gap:8px;align-items:center}
+  .cm-sr{border-radius:12px;background:var(--paper-2);border:1px solid var(--line-2);overflow:hidden}
+  .cm-sr .dd-row{padding:8px 10px;border-bottom:1px solid var(--line)}
+  .cm-sr .cm-res{max-height:280px;overflow:auto}
+  .cm-sr .cres{padding:9px 14px} .cm-sr .empty{padding:14px}
+  .paybtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .paybtns button{border:1px solid var(--line-2);background:var(--sunk);color:var(--muted);font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:7px;cursor:pointer}
+  .paybtns button:hover{color:var(--ink)}
+  .paybtns button.on{background:var(--accent);border-color:var(--accent);color:#fff}
   .dd-row select{width:auto;flex:none}
   .dd-row .search{flex:1}
   /* side-by-side trade */
@@ -852,18 +861,41 @@ const subs = p => Object.entries(p.prices||{}).sort((a,b)=>subOrder(a[0])-subOrd
 const setLabel = p => [p.setName, p.number].filter(Boolean).join(" · ");
 const isVintageYear = y => !!y && y < vYear();
 
+// Daily update runs at 6 AM Eastern. level: "good" = ran and prices changed, "warn" = ran but no price changed
+// (or had errors), "bad" = didn't run (nothing new for more than a day).
+const STALE_HRS = 28;
+function priceStatus(m){
+  m = m || CAT.manifest; if(!m) return null;
+  const at = m.updateAt || m.builtAt, hrs = (Date.now()-at)/3600000;
+  const when = `${ago(at)}${hrs<24?` at ${new Date(at).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`:""}`;
+  if(hrs > STALE_HRS) return { level:"bad", at, short:"Prices not updated", txt:`The daily price update didn't run — last update ${when}. Check the Actions tab on GitHub.` };
+  if(m.changed === false) return { level:"warn", at, short:"Prices unchanged", txt:`The price update ran ${when}, but no prices changed from the previous update${m.pricesChangedAt?` (last change ${ago(m.pricesChangedAt)})`:""}. TCGCSV may not have refreshed.` };
+  if(!m.ok) return { level:"warn", at, short:"Prices updated · errors", txt:`Prices updated ${when}, but some sets failed to download.` };
+  return { level:"good", at, short:"Prices updated "+ago(at), txt:`TCGplayer market prices via TCGCSV · updated ${when}${m.changedCount?` · ${m.changedCount.toLocaleString()} prices changed`:""}` };
+}
 function renderCatStatus(){
   const m = CAT.manifest, pill = $("#price-pill"), info = $("#sync-info");
-  let txt, short, warn = false;
-  if(!m){ txt = CAT.mErr ? "Card catalog isn't available right now — you can still enter cards by hand." : "Loading card catalog…"; short = CAT.mErr ? "Prices unavailable" : "Prices…"; warn = !!CAT.mErr; }
-  else {
-    const hrs = (Date.now()-m.builtAt)/3600000;
-    warn = !m.ok || hrs > 36;
-    short = "Prices updated " + ago(m.builtAt);
-    txt = `TCGplayer market prices via TCGCSV · updated ${ago(m.builtAt)}${hrs<24?` at ${new Date(m.builtAt).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"})}`:""}${!m.ok?" · last update had errors":""}${hrs>36?" · nightly update may have stopped":""}`;
-  }
-  pill.textContent = short; pill.title = txt; pill.classList.toggle("warn", warn);
-  if(info) info.innerHTML = m ? `${esc(txt)}<br>${Object.values(m.games).map(g=>`${esc(g.label)}: ${g.error?`<span class="bad">failed</span>`:(g.products||0).toLocaleString()}`).join(" · ")}<br><span class="small">Cards picked from the catalog update their market price automatically when you open Card Desk after each nightly update (unless you typed your own price).</span>` : esc(txt);
+  let txt, short, level = "good";
+  if(!m){ txt = CAT.mErr ? "Card catalog isn't available right now — you can still enter cards by hand." : "Loading card catalog…"; short = CAT.mErr ? "Prices unavailable" : "Prices…"; level = CAT.mErr ? "bad" : "warn"; }
+  else ({ txt, short, level } = priceStatus(m));
+  pill.textContent = short; pill.title = txt; pill.classList.toggle("warn", level==="warn"); pill.classList.toggle("bad", level==="bad");
+  if(info) info.innerHTML = m ? `<span class="${{warn:"warn-t",bad:"bad"}[level]||""}">${esc(txt)}</span><br>${Object.values(m.games).map(g=>`${esc(g.label)}: ${g.error?`<span class="bad">failed</span>`:(g.products||0).toLocaleString()}`).join(" · ")}<br><span class="small">Cards picked from the catalog update their market price automatically when you open Card Desk after each nightly update (unless you typed your own price).</span>` : esc(txt);
+}
+
+// catalog result rows (click a row, or a printing button, to pick)
+const catRows = results => results.map((p,i) => {
+  const ss = subs(p);
+  return `<div class="cres" data-i="${i}">${thumb(p.productId, true)}
+    <div class="nm">${esc(p.name)}</div><div class="px">${ss.length?money(Math.max(...ss.map(s=>s[1]))):"—"}</div>
+    <div class="meta">${esc([p.setName+(p.setAbbr?` (${p.setAbbr})`:""), p.number?"#"+p.number:"", p.rarity, p.year].filter(Boolean).join(" · "))}${isVintageYear(p.year)?` <span class="chip vin">vintage</span>`:""}</div>
+    ${ss.length>1?`<div class="prts">${ss.map(([s,v])=>`<button type="button" class="prt" data-i="${i}" data-s="${esc(s)}">${esc(s)} ${money(v)}</button>`).join("")}</div>`:""}</div>`;
+}).join("");
+// "charizard psa 10" → grader PSA, grade 10 (and the name without it)
+const GRADE_RE = /(^|[^a-z0-9])(psa|bgs|beckett|cgc|sgc|tag|ace)\s*-?\s*(10|[1-9](?:\.5)?)(?![\d.])/i;
+function parseGrade(q){
+  const m = String(q||"").match(GRADE_RE); if(!m) return null;
+  const g = m[2].toUpperCase();
+  return { grader: g==="BECKETT" ? "BGS" : g, grade: m[3], rest: (q.slice(0, m.index) + m[1] + " " + q.slice(m.index + m[0].length)).replace(/\s+/g," ").trim() };
 }
 
 // ---------- component: catalog search (game tabs + box + results with pictures) ----------
@@ -898,13 +930,7 @@ function mountCatSearch(root, onPick, opts={}){
     catch(e){ console.error(e); if(my===seq){ resEl.innerHTML = `<div class="empty">Couldn't load the catalog. Check your connection and try again.</div>`; st.textContent=""; open(true); } return; }
     if(my !== seq) return;
     st.textContent = results.length ? `${results.length===60?"Top 60":results.length} result${results.length===1?"":"s"} · click a printing to pick it (Enter picks the first)` : "";
-    resEl.innerHTML = results.length ? results.map((p,i) => {
-      const ss = subs(p);
-      return `<div class="cres" data-i="${i}">${thumb(p.productId, true)}
-        <div class="nm">${esc(p.name)}</div><div class="px">${ss.length?money(Math.max(...ss.map(s=>s[1]))):"—"}</div>
-        <div class="meta">${esc([p.setName+(p.setAbbr?` (${p.setAbbr})`:""), p.number?"#"+p.number:"", p.rarity, p.year].filter(Boolean).join(" · "))}${isVintageYear(p.year)?` <span class="chip vin">vintage</span>`:""}</div>
-        ${ss.length>1?`<div class="prts">${ss.map(([s,v])=>`<button type="button" class="prt" data-i="${i}" data-s="${esc(s)}">${esc(s)} ${money(v)}</button>`).join("")}</div>`:""}</div>`;
-    }).join("") : `<div class="empty">No ${esc((games().find(g=>g[0]===game)||["",""])[1])} cards match “${esc(q)}”. Try another spelling or game, or add it by hand.</div>`;
+    resEl.innerHTML = results.length ? catRows(results) : `<div class="empty">No ${esc((games().find(g=>g[0]===game)||["",""])[1])} cards match “${esc(q)}”. Try another spelling or game, or add it by hand.</div>`;
     resEl.scrollTop = 0; open(true);
   };
   const pick = (p, sub) => { const ss = subs(p); sub = sub || (ss[0] ? ss[0][0] : ""); onPick({ ...p, sub, nm:(p.prices||{})[sub] || 0 }); if(dd){ qEl.value=""; results=[]; hint(); qEl.focus(); } };
@@ -1142,10 +1168,10 @@ function cardModal(c, defaults={}){
       <div><div class="entry-img" id="cm-img" style="width:150px;height:209px"></div></div>
       <div>
         <div id="cm-link"></div>
-        <div id="cm-find" style="display:none;margin-bottom:12px"></div>
-        <form class="grid g3 ${isGraded(c)?"is-graded":""}" id="cm">
-          <div style="grid-column:1/3"><label>Card name</label><input name="name" required value="${esc(c.name)}"></div>
+        <form class="grid g3 ${isGraded(c)?"is-graded":""}" id="cm" autocomplete="off">
+          <div style="grid-column:1/3"><label>Card name</label><input name="name" required value="${esc(c.name)}" placeholder="Type to search the catalog, e.g. charizard base psa 10"></div>
           <div><label>Set / number</label><input name="set" value="${esc(c.set)}"></div>
+          <div style="grid-column:1/-1" class="cm-sr" id="cm-sr" hidden><div class="dd-row"><select data-gsel title="Game"></select><span class="muted small" data-st style="flex:1;min-width:0"></span><button type="button" class="x" data-close title="Close">×</button></div><div class="cm-res" data-res></div></div>
           <div class="raw-only"><label>Condition</label><select name="cond">${CONDS.map(x=>`<option ${x===c.cond?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Type</label><select name="kind">${KINDS.map(x=>`<option ${x===(c.kind||"Card")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Qty in stock</label><input name="qty" type="number" min="0" value="${c.qty??1}"></div>
@@ -1155,6 +1181,7 @@ function cardModal(c, defaults={}){
           <div><label>I paid (each) $</label><input name="cost" type="number" step="0.01" min="0" required value="${c.cost}"></div>
           <div><label id="cm-mlabel">${c.custom||isGraded(c)?"Your value $":"Market price $"}</label><input name="market" type="number" step="0.01" min="0" required value="${c.market}"></div>
           <div style="align-self:end;padding-bottom:6px"><a id="cm-look" target="_blank" rel="noopener"></a> <a id="cm-ebay" class="graded-only" target="_blank" rel="noopener" style="display:inline">eBay sold ↗</a></div>
+          <div style="grid-column:1/-1;margin-top:-4px" class="paybtns" id="cm-pay" title="Fill “I paid” from the market price (your value for slabs)">${[100,95,90,80,70,60].map(p=>`<button type="button" data-p="${p}">${p===100?"Market":p+"%"}</button>`).join("")}</div>
           <div style="grid-column:1/-1" class="row"><label class="chk"><input type="checkbox" name="vintage" ${c.vintage?"checked":""}> Vintage</label><label class="chk"><input type="checkbox" name="custom" ${c.custom?"checked":""}> Not on TCGplayer</label></div>
           <div style="grid-column:1/-1" class="muted" id="cm-calc"></div>
           <div style="grid-column:1/-1" class="row">
@@ -1172,31 +1199,69 @@ function cardModal(c, defaults={}){
         m.querySelector("#cm-img").innerHTML = link ? `<img src="${imgSmall(link.productId)}" data-peek="${link.productId}" data-zoom alt="" onerror="this.parentNode.textContent='No picture'">` : "No picture — link to the catalog to get one"; };
       const g = () => f.kind.value==="Graded";
       const ebay = () => { m.querySelector("#cm-ebay").href = ebayUrl({ name:f.name.value, set:f.set.value, grader:f.grader.value, grade:f.grade.value }); };
-      const recalc = () => { ebay(); if(g()) return; if(link && link.nm && !lock && !f.custom.checked){ f.market.value = condPrice(link.nm, f.cond.value, f.vintage.checked, f.kind.value).toFixed(2); calc(); } };
+      const recalc = () => { ebay(); if(g()) return; if(link && link.nm && !lock && !f.custom.checked){ f.market.value = condPrice(link.nm, f.cond.value, f.vintage.checked, f.kind.value).toFixed(2); calc(); syncPaid(); } };
       const drawLink = () => {
         const el = m.querySelector("#cm-link");
         if(f.custom.checked){ el.innerHTML = ""; return; }
         el.innerHTML = link
           ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price — nightly updates off":"price updates nightly"}</span><span class="spacer"></span>
               ${lock&&!g()?`<button type="button" class="btn sm" id="cm-unlock">Use market price</button>`:""}<button type="button" class="btn sm" id="cm-relink">Change</button><button type="button" class="btn sm" id="cm-unlink">Unlink</button></div>`
-          : `<div class="row" style="margin-bottom:10px"><button type="button" class="btn sm" id="cm-findbtn">Find in catalog</button><span class="muted small">Link it to get a picture and nightly prices.</span></div>`;
+          : `<div class="row" style="margin-bottom:10px"><span class="muted small">Type the card name to search the catalog — link it to get a picture and nightly prices.</span></div>`;
         const u=el.querySelector("#cm-unlock"); if(u) u.onclick = () => { lock=false; recalc(); drawLink(); };
         const ul=el.querySelector("#cm-unlink"); if(ul) ul.onclick = () => { link=null; lock=false; drawLink(); look(); };
-        const fb=el.querySelector("#cm-findbtn") || el.querySelector("#cm-relink"); if(fb) fb.onclick = () => { const box=m.querySelector("#cm-find"); box.style.display=""; srch.setQuery(f.name.value); srch.focus(); };
+        const rl=el.querySelector("#cm-relink"); if(rl) rl.onclick = () => { f.name.focus(); search(); };
       };
-      const srch = mountCatSearch(m.querySelector("#cm-find"), p => {
-        link = { productId:p.productId, sub:p.sub, game:p.game, nm:p.nm }; lock = false;
-        if(!f.name.value.trim()) f.name.value = p.name;
-        f.set.value = setLabel(p); f.vintage.checked = isVintageYear(p.year);
-        m.querySelector("#cm-find").style.display = "none";
-        recalc(); drawLink(); look();
-      }, { maxh:"300px" });
-      f.addEventListener("input", e => { if(e.target===f.market && link && !lock){ lock=true; drawLink(); } calc(); if(e.target===f.name||e.target===f.set) look(); });
+      // live catalog search under the name box
+      const sr = m.querySelector("#cm-sr"), gsel = sr.querySelector("[data-gsel]"), resEl = sr.querySelector("[data-res]"), st = sr.querySelector("[data-st]");
+      let game = c.game || lsGet("cd-game") || "pokemon", results = [], seq = 0, st_t;
+      const drawGames = () => { const gs = CAT.manifest ? Object.entries(CAT.manifest.games).filter(([,x])=>!x.error).map(([k,x])=>[k,x.label]) : [["pokemon","Pokémon"]];
+        if(!gs.some(([k])=>k===game)) game = gs[0] ? gs[0][0] : "pokemon";
+        gsel.innerHTML = gs.map(([k,l]) => `<option value="${k}" ${k===game?"selected":""}>${esc(l)}</option>`).join(""); };
+      const closeSr = () => { sr.hidden = true; seq++; };
+      const search = async () => {
+        const raw = f.name.value, pg = parseGrade(raw), q = (pg ? pg.rest : raw).trim(), my = ++seq;
+        if(f.custom.checked || q.length < 2){ closeSr(); return; }
+        sr.hidden = false;
+        if(!CAT.manifest){ resEl.innerHTML = `<div class="empty">${CAT.mErr?"Catalog not available — type the card in yourself.":"Loading catalog…"}</div>`; if(!CAT.mErr) await loadManifest(); if(my!==seq || !CAT.manifest) return; drawGames(); }
+        st.textContent = "Searching…";
+        try { results = await catSearch(game, q); }
+        catch(e){ console.error(e); if(my===seq){ resEl.innerHTML = `<div class="empty">Couldn't load the catalog. Check your connection and try again.</div>`; st.textContent = ""; } return; }
+        if(my !== seq) return;
+        const gl = (CAT.manifest.games[game]||{}).label || game;
+        st.textContent = results.length ? `${results.length===60?"Top 60":results.length} ${gl} result${results.length===1?"":"s"} · click one to link it` : "";
+        resEl.innerHTML = results.length ? catRows(results) : `<div class="empty">No ${esc(gl)} cards match “${esc(q)}”. Try another spelling or game, or keep typing it in yourself.</div>`;
+        resEl.scrollTop = 0;
+      };
+      const pickCard = (p, sub) => {
+        const ss = subs(p); sub = sub || (ss[0] ? ss[0][0] : "");
+        link = { productId:p.productId, sub, game:p.game, nm:(p.prices||{})[sub] || 0 }; lock = false;
+        f.name.value = p.name; f.set.value = setLabel(p); f.vintage.checked = isVintageYear(p.year);
+        if(!g()) f.kind.value = (!p.number && !p.rarity) ? "Sealed" : "Card";
+        closeSr(); recalc(); calc(); drawLink(); look(); ebay();
+        (g() ? (f.grade.value ? f.market : f.grade) : f.cost).focus();
+      };
+      gsel.onchange = () => { game = gsel.value; lsSet("cd-game", game); search(); f.name.focus(); };
+      sr.querySelector("[data-close]").onclick = closeSr;
+      resEl.onclick = e => { const b = e.target.closest("[data-i]"); if(!b) return; const p = results[Number(b.dataset.i)]; if(p) pickCard(p, b.dataset.s); };
+      const applyGrade = () => { const pg = parseGrade(f.name.value); if(!pg) return;
+        if(!g()){ f.kind.value = "Graded"; f.kind.dispatchEvent(new Event("change")); }
+        f.grader.value = GRADERS.includes(pg.grader) ? pg.grader : "Other"; f.grade.value = pg.grade; ebay(); };
+      f.name.addEventListener("input", () => { applyGrade(); clearTimeout(st_t); st_t = setTimeout(search, 160); });
+      f.name.addEventListener("keydown", e => { if(e.key==="Escape" && !sr.hidden){ e.preventDefault(); e.stopPropagation(); closeSr(); } if(e.key==="Enter" && !sr.hidden){ e.preventDefault(); closeSr(); } });
+      f.addEventListener("focusin", e => { if(e.target!==f.name && !sr.contains(e.target)) closeSr(); });
+      drawGames();
+      // "I paid" buttons: a share of the market price / your value; stays matched until you type your own amount
+      let paidPct = null;
+      const payEl = m.querySelector("#cm-pay");
+      const drawPay = () => payEl.querySelectorAll("[data-p]").forEach(b => b.classList.toggle("on", Number(b.dataset.p)===paidPct));
+      const syncPaid = () => { if(paidPct==null) return; const mk = Number(f.market.value)||0; f.cost.value = mk ? (Math.round(mk*paidPct)/100).toFixed(2) : ""; calc(); };
+      payEl.onclick = e => { const b = e.target.closest("[data-p]"); if(!b) return; paidPct = Number(b.dataset.p); drawPay(); syncPaid(); };
+      f.addEventListener("input", e => { if(e.target===f.market && link && !lock){ lock=true; drawLink(); } if(e.target===f.cost && paidPct!=null){ paidPct = null; drawPay(); } if(e.target===f.market) syncPaid(); calc(); if(e.target===f.name||e.target===f.set) look(); });
       ["cond","vintage"].forEach(n => f[n].addEventListener("change", recalc));
       f.grade.addEventListener("input", ebay); f.grader.addEventListener("change", ebay);
       f.kind.addEventListener("change", () => { f.classList.toggle("is-graded", g()); m.querySelector("#cm-mlabel").textContent = g()||f.custom.checked ? "Your value $" : "Market price $"; if(g()){ lock = true; } else if(link){ lock = false; } recalc(); drawLink(); });
       calc(); look(); drawLink(); ebay();
-      f.custom.addEventListener("change", () => { m.querySelector("#cm-mlabel").textContent = f.custom.checked ? "Your value $" : "Market price $"; if(f.custom.checked){ link=null; lock=false; } drawLink(); look(); });
+      f.custom.addEventListener("change", () => { m.querySelector("#cm-mlabel").textContent = f.custom.checked ? "Your value $" : "Market price $"; if(f.custom.checked){ link=null; lock=false; closeSr(); } drawLink(); look(); });
       m.querySelector("#cm-x").onclick = closeModal;
       if(!isNew) m.querySelector("#cm-del").onclick = async () => {
         if(!(await ask("Delete card?", `Remove <b>${esc(c.name)}</b> from inventory? Sales already recorded are kept.`, "Delete", true))) return;
@@ -1204,7 +1269,8 @@ function cardModal(c, defaults={}){
       };
       f.onsubmit = async e => { e.preventDefault(); if(!needDb()) return;
         const newMarket = r2(f.market.value);
-        const data = { name:f.name.value.trim(), set:f.set.value.trim(), cond:g()?"":f.cond.value, kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, cost:r2(f.cost.value), market:newMarket, qty:Math.max(0,parseInt(f.qty.value)||0),
+        const pg = g() && parseGrade(f.name.value), nm = (pg && pg.rest) || f.name.value.trim();
+        const data = { name:nm, set:f.set.value.trim(), cond:g()?"":f.cond.value, kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, cost:r2(f.cost.value), market:newMarket, qty:Math.max(0,parseInt(f.qty.value)||0),
           ...(g() ? { grader:f.grader.value, grade:f.grade.value.trim(), cert:f.cert.value.trim() } : (c.grader ? { grader:null, grade:null, cert:null } : {})) };
         if(link) Object.assign(data, { productId:link.productId, sub:link.sub, game:link.game, nm:r2(link.nm), lock: g() ? true : lock });
         else if(!isNew && c.productId) Object.assign(data, { productId:null, sub:null, game:null, nm:null, lock:false });
@@ -1706,11 +1772,12 @@ function renderOverview(){
   const under = inStock.filter(c => (c.market||0) < floorOf(c.cost)).length;
   const unlinked = inStock.filter(c => !c.productId && !c.custom && (!c.kind || c.kind==="Card")).length;
   const noCert = inStock.filter(c => isGraded(c) && !c.cert).length;
-  const mh = CAT.manifest ? (now - CAT.manifest.builtAt)/3600000 : null;
-  if(mh!=null && (mh>36 || !CAT.manifest.ok)) att.push(attItem("b","warn","Price updates look stuck", `Last update ${ago(CAT.manifest.builtAt)}${CAT.manifest.ok?"":", with errors"}. Check the Actions tab on GitHub.`, "#money"));
+  const ps = priceStatus();
+  if(ps && ps.level==="bad") att.push(attItem("b","warn","Price update didn't run", ps.txt, "#money"));
+  else if(ps && ps.level==="warn") att.push(attItem("w","warn", ps.short, ps.txt, "#money"));
   if(under) att.push(attItem("b","trend", `${under} card${under===1?"":"s"} worth less than your minimum`, `Market has dropped below what you paid plus ${minP()}%.`, "#inventory:profit"));
   if(stale) att.push(attItem("w","hourglass", `${stale} price${stale===1?"":"s"} older than 14 days`, "Link them to the catalog or update them by hand.", "#inventory:marketAt"));
-  if(unlinked) att.push(attItem("n","link", `${unlinked} card${unlinked===1?"":"s"} not linked to the catalog`, "No picture and no nightly price. Use Find in catalog.", "#inventory:name"));
+  if(unlinked) att.push(attItem("n","link", `${unlinked} card${unlinked===1?"":"s"} not linked to the catalog`, "No picture and no nightly price. Open the card and type its name to link it.", "#inventory:name"));
   if(noCert) att.push(attItem("n","slab", `${noCert} slab${noCert===1?"":"s"} without a cert number`, "Add it so you can verify the slab later.", "#graded"));
   if(buy.items.length) att.push(attItem("n","buy", `Unfinished buy list (${buy.items.length} line${buy.items.length===1?"":"s"})`, `Offer so far ${money(buy.items.reduce((s,it)=>s+payEach(it,buy.pct)*it.qty,0))}.`, "#buy","Open"));
   if(trade.inItems.length || trade.outItems.length) att.push(attItem("n","trade", "Unfinished trade", `${trade.outItems.length} of yours, ${trade.inItems.length} of theirs.`, "#trade","Open"));
