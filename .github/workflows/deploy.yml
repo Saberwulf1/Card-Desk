@@ -7,9 +7,12 @@ on:
   push:
     branches: [main]
   schedule:
-    # GitHub schedules are in UTC, so both are listed and the gate job keeps the one that is 6 AM in New York today:
-    - cron: "4 10 * * *"   # 6:04 AM EDT (summer)
-    - cron: "4 11 * * *"   # 6:04 AM EST (winter)
+    # GitHub often starts scheduled runs hours late, so the morning is covered by hourly tries (UTC times):
+    # 10:17 … 16:17 UTC = 6:17 AM … 12:17 PM EDT (summer) or 5:17 AM … 11:17 AM EST (winter).
+    # The gate job runs the build at the first try after 6 AM New York time that finds new TCGCSV prices,
+    # and skips the rest. If TCGCSV has nothing new, the first try from 11 AM runs anyway, so you still
+    # get the daily "prices didn't change" notice.
+    - cron: "17 10-16 * * *"
   workflow_dispatch:
 
 permissions:
@@ -31,16 +34,38 @@ jobs:
       - id: g
         env:
           EVENT: ${{ github.event_name }}
-          SCHED: ${{ github.event.schedule }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
         run: |
-          run=true
-          if [ "$EVENT" = schedule ]; then
-            tz=$(TZ=America/New_York date +%Z)   # EDT or EST
-            if [ "$SCHED" = "4 10 * * *" ] && [ "$tz" != EDT ]; then run=false; fi
-            if [ "$SCHED" = "4 11 * * *" ] && [ "$tz" != EST ]; then run=false; fi
-          fi
-          echo "New York is on $(TZ=America/New_York date +%Z); run=$run"
-          echo "run=$run" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" != schedule ]; then echo "run=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          SITE="https://${OWNER,,}.github.io/${REPO}/" python3 - <<'PY'
+          import datetime as dt, json, os, urllib.request, zoneinfo
+          ny = zoneinfo.ZoneInfo("America/New_York"); now = dt.datetime.now(ny)
+          def get(url):
+              with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "CardDesk-gate/1.0"}), timeout=30) as r:
+                  return r.read().decode()
+          run, why = True, ""
+          if now.hour < 6:
+              run, why = False, "before 6 AM in New York"
+          else:
+              try:
+                  src = get("https://tcgcsv.com/last-updated.txt").strip()
+                  live = json.loads(get(os.environ["SITE"] + f"catalog/manifest.json?t={int(now.timestamp())}"))
+                  ran_today = dt.datetime.fromtimestamp((live.get("updateAt") or live["builtAt"]) / 1000, ny).date() == now.date()
+                  if live.get("tcgcsvUpdated") != src:
+                      why = f"new TCGCSV prices ({src})"
+                  elif ran_today:
+                      run, why = False, "already updated today with the latest TCGCSV prices"
+                  elif now.hour >= 11:
+                      why = "no new TCGCSV prices yet; running anyway so today's notice goes out"
+                  else:
+                      run, why = False, f"TCGCSV hasn't updated since {src}; will try again next hour"
+              except Exception as e:
+                  why = f"couldn't check ({e}); running to be safe"
+          print(f"{now:%a %H:%M} New York: run={run} ({why})")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"run={'true' if run else 'false'}\n")
+          PY
 
   build:
     needs: gate
@@ -61,6 +86,14 @@ jobs:
         env:
           PREV_SITE: ${{ steps.pages.outputs.base_url }}   # compare with the prices live now
         run: python3 sync/build_catalog.py site/catalog
+
+      # Price history for the stock value chart. Never stops the deploy (keeps the live copy on errors).
+      - name: Price history
+        env:
+          PREV_SITE: ${{ steps.pages.outputs.base_url }}
+        run: |
+          pip install --quiet py7zr || echo "py7zr not installed; history keeps the live copy"
+          python3 sync/build_history.py site/catalog
 
       - name: Check every game built
         id: check
