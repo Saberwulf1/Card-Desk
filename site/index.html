@@ -342,9 +342,28 @@
   .ov-top{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:2px 0 18px}
   .ov-top .ph{margin:0;flex:1;min-width:280px}
   .quick{display:flex;gap:8px;flex-wrap:wrap}
-  .ov-grid{display:grid;gap:20px;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start;margin-bottom:20px}
-  .ov-grid3{display:grid;gap:20px;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
-  @media (max-width:1100px){.ov-grid,.ov-grid3{grid-template-columns:1fr}}
+  .ov-stats{margin-bottom:16px}
+  .ov-stats .stat{padding:11px 16px 12px}.ov-stats .stat .v{font-size:23px}
+  .ov-row{display:grid;gap:16px;margin-bottom:16px;align-items:stretch}
+  .ov-b{grid-template-columns:minmax(0,5fr) minmax(0,4fr) minmax(0,3fr)}
+  .ov-c{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .ov-p{display:flex;flex-direction:column;min-width:0;padding:14px 16px}
+  .ov-p .panel-h{margin-bottom:8px}
+  .ov-b .ov-p{height:300px}.ov-c .ov-p{height:330px}
+  .ov-p .scroll{flex:1;min-height:0;overflow-y:auto;margin:0 -6px;padding:0 6px}
+  .ov-p .scroll{-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent);padding-bottom:18px}
+  .ov-p .scroll::-webkit-scrollbar{width:6px}.ov-p .scroll::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:3px}
+  .ov-p .chart{flex:1;min-height:0}
+  .ov-foot{display:flex;align-items:center;gap:10px;margin-top:4px}
+  .ov-foot .vkey{margin:0}
+  .kpi-line.sm{gap:18px;margin:0 0 6px}.kpi-line.sm b{font-size:16.5px}.kpi-line.sm div{font-size:11.5px}
+  .seg.sm{padding:2px}.seg.sm button{padding:4px 8px;font-size:12px}
+  .empty.sm{padding:18px 8px;font-size:12.5px}.empty.sm b{font-size:13.5px}
+  .ov-p .att a,.ov-p .att div.ok{padding:8px 4px}
+  .ov-p .tops .it{padding:6px 0}
+  .ov-p .feed .f{padding:7px 0}
+  @media (max-width:1250px){.ov-b{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ov-b .ov-p:first-child{grid-column:1/-1}}
+  @media (max-width:1000px){.ov-b,.ov-c{grid-template-columns:1fr}.ov-b .ov-p,.ov-c .ov-p{height:auto;max-height:420px}}
   .chart{position:relative}
   .chart svg{display:block;width:100%;height:auto;overflow:visible}
   .chart .grid line{stroke:var(--line);stroke-width:1}
@@ -490,32 +509,33 @@
 <div class="page">
   <div id="banner" class="banner"></div>
 
-  <!-- OVERVIEW -->
+  <!-- OVERVIEW: a one-screen hub -->
   <section class="view" id="v-overview">
     <div class="ov-top">
-      <div class="ph"><h1 id="ov-hello">Overview</h1><p id="ov-sub">A quick look at stock, sales and anything that needs you.</p></div>
+      <div class="ph"><h1 id="ov-hello">Overview</h1><p id="ov-sub"></p></div>
       <div class="quick">
-        <a class="btn primary" href="#graded" id="ov-slab"><i data-icon="slab"></i>Add slab</a>
+        <button class="btn" id="ov-card"><i data-icon="plus"></i>Add card</button>
+        <button class="btn" id="ov-slab"><i data-icon="slab"></i>Add slab</button>
       </div>
     </div>
-    <div class="stats" id="ov-stats"></div>
-    <div class="panel" style="margin-bottom:20px"><div class="panel-h"><h2><span class="ic" data-icon="trend"></span>Stock value over time</h2><span class="spacer"></span><div class="seg vc-kind" data-pre="ov"><button data-vk="all">All</button><button data-vk="raw" title="Raw cards and sealed, priced from TCGplayer">Raw &amp; sealed</button><button data-vk="graded" title="Slabs, at the values you set from eBay sold listings">Graded</button></div><div class="seg vc-range"><button data-vr="30">30 days</button><button data-vr="90">90 days</button><button data-vr="all">Since June</button></div></div>
-      <div class="kpi-line" id="ov-vkpis"></div>
-      <div class="vkey"><span><i></i>Value</span><span><i class="p"></i>What you paid</span></div>
-      <div class="chart vchart" id="ov-vchart"></div>
-      <details class="vhow"><summary>How these values are worked out</summary><p class="muted small vnote" id="ov-vnote"></p></details>
-    </div>
-    <div class="ov-grid">
-      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>Sales, last 30 days</h2><span class="spacer"></span><span class="muted small">trades included · hover a bar</span></div>
-        <div class="kpi-line" id="ov-kpis"></div>
+    <div class="stats ov-stats" id="ov-stats"></div>
+    <div class="ov-row ov-b">
+      <div class="panel ov-p"><div class="panel-h"><h2><span class="ic" data-icon="trend"></span>Stock value</h2><span class="spacer"></span><div class="seg sm vc-kind" data-pre="ov"><button data-vk="all">All</button><button data-vk="raw">Raw</button><button data-vk="graded">Graded</button></div><div class="seg sm vc-range"><button data-vr="30">30d</button><button data-vr="90">90d</button><button data-vr="all">All</button></div></div>
+        <div class="kpi-line sm" id="ov-vkpis"></div>
+        <div class="chart vchart sm" id="ov-vchart"></div>
+        <div class="ov-foot"><span class="vkey"><span><i></i>Value</span><span><i class="p"></i>Paid</span></span><span class="spacer"></span><a href="#money" class="small">Full chart on Money ›</a></div>
+        <p class="muted small vnote" id="ov-vnote" hidden></p>
+      </div>
+      <div class="panel ov-p"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>Sales, 30 days</h2><span class="spacer"></span><span class="muted small">incl. trades</span></div>
+        <div class="kpi-line sm" id="ov-kpis"></div>
         <div class="chart" id="ov-chart"></div>
       </div>
-      <div class="panel"><div class="panel-h"><h2><span class="ic y" data-icon="bell"></span>Needs attention</h2></div><div class="att" id="ov-att"></div></div>
+      <div class="panel ov-p"><div class="panel-h"><h2><span class="ic y" data-icon="bell"></span>Needs attention</h2></div><div class="att scroll" id="ov-att"></div></div>
     </div>
-    <div class="ov-grid3">
-      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="trend"></span>Most valuable in stock</h2><span class="spacer"></span><a class="small" href="#inventory">All stock</a></div><div class="tops" id="ov-tops"></div></div>
-      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="stack"></span>Stock by type</h2><span class="spacer"></span><span class="muted small">market value</span></div><div class="hbars" id="ov-mix"></div></div>
-      <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Recent activity</h2><span class="spacer"></span><a class="small" href="#money">Money</a></div><div class="feed" id="ov-feed"></div></div>
+    <div class="ov-row ov-c">
+      <div class="panel ov-p"><div class="panel-h"><h2><span class="ic" data-icon="trend"></span>Most valuable</h2><span class="spacer"></span><a class="small" href="#inventory">All stock ›</a></div><div class="tops scroll" id="ov-tops"></div></div>
+      <div class="panel ov-p"><div class="panel-h"><h2><span class="ic" data-icon="stack"></span>Stock by type</h2><span class="spacer"></span><span class="muted small">market value</span></div><div class="hbars scroll" id="ov-mix"></div></div>
+      <div class="panel ov-p"><div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Recent activity</h2><span class="spacer"></span><a class="small" href="#money">Money ›</a></div><div class="feed scroll" id="ov-feed"></div></div>
     </div>
   </section>
 
@@ -1906,7 +1926,7 @@ function salesByDay(days){
 function niceMax(v){ if(v<=0) return 100; const p = Math.pow(10, Math.floor(Math.log10(v))); for(const m of [1,2,2.5,5,10]) if(m*p >= v) return m*p; return 10*p; }
 const shortMoney = n => n>=1000 ? "$"+(n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,"")+"k" : "$"+Math.round(n);
 function drawSalesChart(el, data){
-  const W=Math.max(420, Math.round(el.clientWidth || 640)), H=180, L=44, R=8, T=10, B=24, iw=W-L-R, ih=H-T-B, n=data.length, step=iw/n, bw=Math.max(3, Math.min(22, step-4));
+  const W=Math.max(300, Math.round(el.clientWidth || 640)), H=Math.max(110, Math.min(200, Math.round(el.clientHeight || 150))), L=44, R=8, T=10, B=24, iw=W-L-R, ih=H-T-B, n=data.length, step=iw/n, bw=Math.max(3, Math.min(22, step-4));
   const max = niceMax(Math.max(...data.map(d=>d.total)));
   const y = v => T + ih - (v/max)*ih;
   const ticks = [0, max/2, max];
@@ -1948,9 +1968,9 @@ function renderOverview(){
   const tot = d30.reduce((s,d)=>s+d.total,0), prof = d30.reduce((s,d)=>s+d.profit,0), cnt = d30.reduce((s,d)=>s+d.n,0);
   const prevFrom = d30[0].d.getTime() - 30*86400000, prev = S.sales.filter(x => x.at>=prevFrom && x.at<d30[0].d.getTime()).reduce((s,x)=>s+(x.total||0),0);
   const delta = prev>0 ? Math.round((tot-prev)/prev*100) : null;
-  $("#ov-kpis").innerHTML = `<div>Sales<b>${money(tot)}${delta!=null?`<span class="delta ${delta>=0?"good":"bad"}">${delta>=0?"▲":"▼"} ${Math.abs(delta)}% vs prior 30 days</span>`:""}</b></div><div>Profit<b class="${prof>=0?"":"bad"}">${money(prof)}</b></div><div>Transactions<b>${cnt}</b></div><div>Average sale<b>${money(cnt?tot/cnt:0)}</b></div>`;
+  $("#ov-kpis").innerHTML = `<div>Sales<b>${money(tot)}${delta!=null?`<span class="delta ${delta>=0?"good":"bad"}">${delta>=0?"▲":"▼"} ${Math.abs(delta)}% vs prior 30 days</span>`:""}</b></div><div>Profit<b class="${prof>=0?"":"bad"}">${money(prof)}</b></div><div>Transactions<b>${cnt}</b></div><div>Avg sale<b>${money(cnt?tot/cnt:0)}</b></div>`;
   if(tot>0) drawSalesChart($("#ov-chart"), d30);
-  else $("#ov-chart").innerHTML = `<div class="empty">${ART.receipt()}<b>No sales in the last 30 days</b>Completed sales and trades show up here day by day.</div>`;
+  else $("#ov-chart").innerHTML = `<div class="empty sm"><b>No sales in the last 30 days</b>Sales and trades show up here day by day.</div>`;
   // needs attention
   const att = [];
   const under = inStock.filter(c => (c.market||0) < floorOf(c.cost)).length;
@@ -1968,7 +1988,7 @@ function renderOverview(){
   if(trade.inItems.length || trade.outItems.length) att.push(attItem("n","trade", "Unfinished trade", `${trade.outItems.length} of yours, ${trade.inItems.length} of theirs.`, "#trade","Open"));
   $("#ov-att").innerHTML = att.length ? att.join("") : `<div class="ok"><span class="ai g">${svgIcon("check")}</span><span class="t">All clear<small>Prices are fresh and nothing's waiting on you.</small></span><span></span></div>`;
   // most valuable
-  const tops = inStock.slice().sort((a,b)=>(b.market||0)-(a.market||0)).slice(0,6);
+  const tops = inStock.slice().sort((a,b)=>(b.market||0)-(a.market||0)).slice(0,10);
   $("#ov-tops").innerHTML = tops.length ? tops.map(c => `<div class="it" data-id="${c.id}">${thumb(c.productId)}<div style="min-width:0"><div class="nm">${esc(c.name)}</div><div class="sub">${isGraded(c)?esc(gradeLabel(c)):esc(c.cond||c.kind||"")}${c.qty>1?` · ×${c.qty}`:""} · paid ${money(c.cost)}</div></div><div class="px">${money(c.market)}<div class="small ${(c.market||0)-c.cost>=0?"good":"bad"}" style="font:500 11.5px var(--body)">${(c.market||0)-c.cost>=0?"+":""}${money((c.market||0)-c.cost)}</div></div></div>`).join("")
     : `<div class="empty">${ART.fan()}<b>Nothing in stock yet</b>Your most valuable cards will show here.</div>`;
   // stock by type
@@ -1981,7 +2001,7 @@ function renderOverview(){
     ...S.purchases.filter(x=>!x.tradeId).map(x => ({ at:x.at, icon:"buy", t:`Bought ${(x.items||[]).reduce((s,i)=>s+i.qty,0)} card${(x.items||[]).reduce((s,i)=>s+i.qty,0)===1?"":"s"}${x.seller?" from "+x.seller:""}`, s:(x.items||[]).map(i=>i.name).join(", "), amt:`−${money(x.totalPaid)}`, cls:"", note:`${x.pct}% offer` })),
     ...S.trades.map(x => ({ at:x.at, icon:"trade", t:`Trade${x.customer?" with "+x.customer:""}`, s:`gave ${x.outCount}, took ${x.inCount}`, amt: x.cash>0?`+${money(x.cash)}`:x.cash<0?`−${money(-x.cash)}`:"even", cls:x.cash>0?"good":"", note:"cash difference" })),
     ...S.expenses.map(x => ({ at:x.at, icon:"receipt", t:x.desc||"Expense", s:x.cat||"", amt:`−${money(x.amount)}`, cls:"", note:"expense" }))
-  ].sort((a,b)=>b.at-a.at).slice(0,7);
+  ].sort((a,b)=>b.at-a.at).slice(0,10);
   $("#ov-feed").innerHTML = feed.length ? feed.map(f => `<div class="f"><span class="fi">${svgIcon(f.icon)}</span><div class="tx"><div>${esc(f.t)}</div><small>${esc(f.s)}${f.s?" · ":""}${ago(f.at)}</small></div><div class="amt ${f.cls}">${f.amt}<small>${esc(f.note)}</small></div></div>`).join("")
     : `<div class="empty">${ART.receipt()}<b>No activity yet</b>Buys, sales, trades and expenses appear here.</div>`;
   drawValueCharts();
@@ -2062,7 +2082,7 @@ function drawValueChart(pre, all){
   const any = data.some(p => p.units > 0);
   const label = { all:"stock", raw:"raw & sealed stock", graded:"graded slabs" }[ui2.vk];
   if(!any || data.length < 2){
-    kp.innerHTML = ""; el.innerHTML = `<div class="empty">${ART.fan()}<b>No ${label} in this range</b>Cards you hold show up here with their value day by day.</div>`; note.textContent = ""; return;
+    kp.innerHTML = ""; el.innerHTML = `<div class="empty${pre==="ov"?" sm":""}">${pre==="ov"?"":ART.fan()}<b>No ${label} in this range</b>Cards you hold show up here with their value day by day.</div>`; note.textContent = ""; return;
   }
   // nothing changed since the last drawing (same numbers, size and settings): keep it, so a hover stays put
   const sig = [ui2.vk, ui2.vr, el.clientWidth, HIST.idx ? HIST.idx.builtAt : 0, ...data.map(p => p.value.toFixed(2)+"/"+p.paid.toFixed(2)+"/"+p.units)].join("|");
@@ -2073,12 +2093,12 @@ function drawValueChart(pre, all){
   let mv0 = 0, mv1 = 0; z.per.forEach((e,k) => { const s = a.per[k]; if(e && s){ const q = Math.min(e[0], s[0]); mv0 += q*s[1]; mv1 += q*e[1]; } });
   const pm = mv0 > 0 ? (mv1-mv0)/mv0*100 : null, gain = z.value - z.paid;
   const sgn = n => (n>=0?"+":"") + money(n), pct = n => (n>=0?"▲ ":"▼ ") + Math.abs(n).toFixed(1) + "%", pctS = n => (n>=0?"+":"−") + Math.abs(n).toFixed(1) + "%";
-  kp.innerHTML = `<div>Value now<b>${money(z.value)}</b></div>
+  kp.innerHTML = `${pre==="ov"?"":`<div>Value now<b>${money(z.value)}</b></div>`}
     <div>Change since ${a.today?"today":new Date(a.t).toLocaleDateString(undefined,{month:"short",day:"numeric"})}<b class="${chg>=0?"good":"bad"}">${sgn(chg)}${a.value>0?`<span class="delta">${pct(chg/a.value*100)}</span>`:""}</b></div>
     <div title="How prices moved on the cards you held the whole time, leaving out buys and sales">Price movement<b class="${pm==null?"":pm>=0?"good":"bad"}">${pm==null?"—":pctS(pm)}${pm!=null?`<span class="delta">${sgn(mv1-mv0)}</span>`:""}</b></div>
     <div>Value over what you paid<b class="${gain>=0?"good":"bad"}">${sgn(gain)}</b></div>`;
   // chart
-  const W=Math.max(420, Math.round(el.clientWidth || 720)), H=W>900?240:210, L=50, R=10, T=12, B=24, iw=W-L-R, ih=H-T-B;
+  const W=Math.max(300, Math.round(el.clientWidth || 720)), H=pre==='ov' ? Math.max(110, Math.min(200, Math.round(el.clientHeight || 150))) : (W>900?240:210), L=50, R=10, T=12, B=24, iw=W-L-R, ih=H-T-B;
   const t0 = data[0].t, t1 = z.t, xs = t => L + (t1>t0 ? (t-t0)/(t1-t0) : 1)*iw;
   let lo = Math.min(...data.map(p=>Math.min(p.value,p.paid))), hi = Math.max(...data.map(p=>Math.max(p.value,p.paid)));
   if(hi <= 0) hi = 100;
@@ -2137,7 +2157,8 @@ $("#ov-tops").onclick = e => { const it = e.target.closest("[data-id]"); if(it) 
 $("#ov-att").onclick = e => { const a = e.target.closest("[data-goto]"); if(!a) return; const [tab, sort] = a.dataset.goto.slice(1).split(":");
   if(sort==="upd"){ e.preventDefault(); $("#inv-src").value = "upd"; location.hash = tab; showTab(tab); renderInventory(); return; }
   if(sort){ e.preventDefault(); ui.invSort = sort; ui.invDir = sort==="name" ? 1 : sort==="profit" ? 1 : 1; ui.invKind = "all"; $("#inv-kind").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.k==="all")); location.hash = tab; showTab(tab); renderInventory(); } };
-$("#ov-slab").onclick = e => { e.preventDefault(); location.hash = "graded"; showTab("graded"); cardModal(null, { kind:"Graded", cond:"" }); };
+$("#ov-slab").onclick = () => cardModal(null, { kind:"Graded", cond:"" });
+$("#ov-card").onclick = () => cardModal(null);
 
 // ---------- render all ----------
 let renderT = 0;
