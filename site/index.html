@@ -55,6 +55,8 @@
   .nav button svg{width:17px;height:17px;opacity:.85}
   .nav button:hover{color:#fff;background:rgba(255,255,255,.07)}
   .nav button.on{color:#fff;background:rgba(255,255,255,.13);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+  .gear{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);cursor:pointer}
+  .gear svg{width:18px;height:18px}.gear:hover{background:rgba(255,255,255,.1);color:#fff}.gear.on{background:#fff;color:var(--accent-ink);border-color:#fff}
   .top-right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px;color:rgba(255,255,255,.7);white-space:nowrap}
   .pill{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.88)}
   .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:#4ADE96;box-shadow:0 0 0 3px rgba(74,222,150,.2)}
@@ -98,6 +100,12 @@
   .stat svg.bg{position:absolute;right:-8px;bottom:-10px;width:62px;height:62px;color:var(--ink);opacity:.06}
   .stat.hero{background:linear-gradient(135deg,var(--navy-2),var(--navy));color:#fff;border-color:transparent}
   .stat.hero .k{color:rgba(255,255,255,.7)}
+.stats.slim{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+  .stats.slim .stat{padding:8px 14px 9px;box-shadow:none}
+  .stats.slim .stat .k{font-size:11.5px}
+  .stats.slim .stat .v{font-size:19px;margin-top:1px}
+  .stats.slim .stat svg.bg{display:none}
+  .stats.slim .stat.hero::after{height:2px}
   .stat.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--holo)}
   .stat.hero svg.bg{color:#fff;opacity:.1}
   .stat.hero .good{color:#5BE3A6}.stat.hero .bad{color:#FF8E84}
@@ -147,6 +155,7 @@
   .seg button.on{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(26,35,64,.15)}
   /* condition buttons: colour = grade */
   .seg.cond button{min-width:46px;font-weight:700}
+  .modal .seg.cond{display:flex;width:100%}.modal .seg.cond button{flex:1;min-width:0;padding:7px 4px}
   .seg.cond button[data-c=NM].on{background:var(--c-nm);color:#fff}
   .seg.cond button[data-c=LP].on{background:var(--c-lp);color:#fff}
   .seg.cond button[data-c=MP].on{background:var(--c-mp);color:#fff}
@@ -364,7 +373,12 @@
   .vkey{display:flex;gap:16px;align-items:center;font-size:12px;color:var(--muted);margin:2px 0 6px}
   .vkey i{display:inline-block;width:18px;height:0;border-top:2.2px solid #fff;vertical-align:middle;margin-right:6px}
   .vkey i.p{border-top:1.6px dashed var(--muted)}
-  .vnote{margin:8px 0 0;line-height:1.45}
+  .vnote{margin:6px 0 0;line-height:1.5;max-width:900px}
+  .vhow{margin-top:8px}
+  .vhow summary{cursor:pointer;font-size:12.5px;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:6px}
+  .vhow summary::-webkit-details-marker{display:none}
+  .vhow summary::before{content:"i";display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line-2);font:600 10px var(--body)}
+  .vhow summary:hover{color:var(--ink)}
   .att{display:flex;flex-direction:column}
   .att a,.att div.ok{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none}
   .att a:last-child{border-bottom:0}
@@ -465,8 +479,9 @@
   </nav>
   <div class="top-right">
     <span class="pill offline off" id="net">Offline · changes will sync</span>
-    <span class="pill" id="price-pill" title="">Prices…</span>
+    <span class="pill" id="price-pill" title="" role="button" tabindex="0" style="cursor:pointer">Prices…</span>
     <span class="who" id="who"></span>
+    <button class="gear" id="go-settings" title="Settings" aria-label="Settings"><i data-icon="gear"></i></button>
   </div>
 </div></header>
 
@@ -486,7 +501,7 @@
       <div class="kpi-line" id="ov-vkpis"></div>
       <div class="vkey"><span><i></i>Value</span><span><i class="p"></i>What you paid</span></div>
       <div class="chart vchart" id="ov-vchart"></div>
-      <p class="muted small vnote" id="ov-vnote"></p>
+      <details class="vhow"><summary>How these values are worked out</summary><p class="muted small vnote" id="ov-vnote"></p></details>
     </div>
     <div class="ov-grid">
       <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>Sales, last 30 days</h2><span class="spacer"></span><span class="muted small">trades included · hover a bar</span></div>
@@ -505,11 +520,11 @@
   <!-- INVENTORY -->
   <section class="view" id="v-inventory">
     <div class="ph"><h1>Inventory</h1><p>Everything in your boxes and binders, priced and ready to sell.</p></div>
-    <div class="stats" id="inv-stats"></div>
+    <div class="stats slim" id="inv-stats"></div>
     <div class="review" id="inv-review" hidden></div>
     <div class="panel flush">
       <div class="row" style="padding:12px 16px">
-        <div class="search" style="width:340px;max-width:100%"><i data-icon="search"></i><input id="inv-search" placeholder="Search name, set or printing…"></div>
+        <div class="search" style="width:250px;max-width:100%"><i data-icon="search"></i><input id="inv-search" placeholder="Search name, set or printing…"></div>
         <div class="seg" id="inv-kind"><button data-k="all" class="on">All</button><button data-k="raw">Raw cards</button><button data-k="other">Sealed &amp; other</button></div>
         <select id="inv-cond" title="Condition" style="width:auto"><option value="">Any condition</option><option value="played">Not near mint</option><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select>
         <select id="inv-src" title="Where the price comes from" style="width:auto"><option value="">Any price source</option><optgroup label="Price from"><option value="tcg">TCGplayer (nightly)</option><option value="jt">JustTCG condition price</option><option value="own">Your own price (typed in)</option></optgroup><optgroup label="Other"><option value="hand">Added by hand</option><option value="upd">Needs update</option></optgroup></select>
@@ -526,7 +541,7 @@
   <!-- GRADED -->
   <section class="view" id="v-graded">
     <div class="ph"><h1>Graded</h1><p>Your slabs: grader, grade, cert number and what each is worth to you.</p></div>
-    <div class="stats" id="gr-stats"></div>
+    <div class="stats slim" id="gr-stats"></div>
     <div class="panel flush">
       <div class="row" style="padding:12px 16px">
         <div class="search" style="width:340px;max-width:100%"><i data-icon="search"></i><input id="gr-search" placeholder="Search name, grader, grade or cert…"></div>
@@ -607,7 +622,7 @@
 
   <!-- MONEY -->
   <section class="view" id="v-money">
-    <div class="ph"><h1>Money</h1><p>Sales, profit, expenses and your pricing rules.</p></div>
+    <div class="ph"><h1>Money</h1><p>Sales, profit, expenses and how your stock is doing.</p></div>
     <div class="row" style="margin-bottom:14px">
       <div class="seg" id="m-period">
         <button data-p="month" class="on">This month</button><button data-p="last">Last month</button><button data-p="year">This year</button><button data-p="all">All time</button>
@@ -619,18 +634,10 @@
       <div class="kpi-line" id="m-vkpis"></div>
       <div class="vkey"><span><i></i>Value</span><span><i class="p"></i>What you paid</span></div>
       <div class="chart vchart" id="m-vchart"></div>
-      <p class="muted small vnote" id="m-vnote"></p>
+      <details class="vhow"><summary>How these values are worked out</summary><p class="muted small vnote" id="m-vnote"></p></details>
     </div>
-    <div class="cols c-money">
-      <div class="stack">
+    <div class="cols c-money" style="margin-bottom:20px">
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>By month</h2></div><div id="m-months" class="tbl-wrap"></div></div>
-        <div class="panel flush">
-          <div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Activity</h2><span class="spacer"></span>
-            <div class="seg" id="m-act"><button data-a="sales" class="on">Sales</button><button data-a="purchases">Purchases</button><button data-a="trades">Trades</button><button data-a="expenses">Expenses</button></div></div>
-          <div class="tbl-wrap" style="max-height:560px;margin-top:10px"><table class="tbl" id="m-activity"></table></div>
-        </div>
-      </div>
-      <div class="stack">
         <div class="panel"><div class="panel-h"><h2><span class="ic y" data-icon="receipt"></span>Add an expense</h2></div>
           <form id="exp-form" class="grid g2" autocomplete="off">
             <div style="grid-column:1/-1"><label>What for</label><input id="e-desc" required placeholder="e.g. Show table fee, sleeves, shipping"></div>
@@ -640,6 +647,19 @@
             <div style="align-self:end"><button class="btn primary" type="submit" style="width:100%">Add expense</button></div>
           </form>
         </div>
+    </div>
+        <div class="panel flush">
+          <div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Activity</h2><span class="spacer"></span>
+            <div class="seg" id="m-act"><button data-a="sales" class="on">Sales</button><button data-a="purchases">Purchases</button><button data-a="trades">Trades</button><button data-a="expenses">Expenses</button></div></div>
+          <div class="tbl-wrap" style="max-height:560px;margin-top:10px"><table class="tbl" id="m-activity"></table></div>
+        </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="v-settings">
+    <div class="ph"><h1>Settings</h1><p>Pricing rules, price data and your account.</p></div>
+    <div class="cols c-2">
+      <div class="stack">
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="pct"></span>Pricing rules</h2></div>
           <div class="row" style="margin-bottom:12px"><div style="width:180px"><label>Minimum profit on a sale (%)</label><input id="set-min" type="number" min="0" step="1"></div><button class="btn" id="set-save" style="align-self:flex-end">Save</button></div>
           <label>Condition pricing (% of near-mint market)</label>
@@ -648,6 +668,8 @@
           <div class="row" style="margin-top:10px"><div style="width:220px"><label>Vintage = sets released before</label><input id="set-vyear" type="number" min="1990" max="2100" step="1"></div>
             <span class="spacer"></span><button class="btn" id="cond-reset" style="align-self:flex-end">Defaults</button><button class="btn primary" id="cond-save" style="align-self:flex-end">Save</button></div>
         </div>
+      </div>
+      <div class="stack">
         <div class="panel"><div class="panel-h"><h2><span class="ic g" data-icon="refresh"></span>Price data</h2></div><div id="sync-info" class="muted"></div>
           <div class="row" style="margin-top:10px"><button class="btn" id="cat-offline">Save catalog for offline use</button><span class="muted small" id="cat-offline-msg"></span></div>
           <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
@@ -714,6 +736,7 @@ const ICONS = {
   clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
   refresh:'<path d="M20 11a8 8 0 0 0-14.5-4.5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16"/><path d="M20 20v-4h-4"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
   user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   home:'<path d="M4 11 12 4l8 7"/><path d="M6 9.5V20h12V9.5"/><path d="M10 20v-5h4v5"/>',
@@ -1114,21 +1137,24 @@ function mountInvPicker(root, { onPick, inCart, dropdown }){
 }
 
 // ---------- tabs ----------
-const TABS = ["overview","inventory","graded","buy","sell","trade","money"];
+const TABS = ["overview","inventory","graded","buy","sell","trade","money","settings"];
 function showTab(t){
   if(!TABS.includes(t)) t = "overview";
   ui.tab = t;
   document.querySelectorAll("#nav button").forEach(b => b.classList.toggle("on", b.dataset.tab===t));
+  $("#go-settings").classList.toggle("on", t==="settings");
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("on", v.id==="v-"+t));
-  if(t==="overview" || t==="money") setTimeout(() => { if(typeof drawValueCharts==="function") drawValueCharts(); });
+  if(t==="overview") setTimeout(() => renderOverview());
+  if(t==="money") setTimeout(() => drawValueCharts());
   peek.classList.remove("on");
 }
 $("#nav").onclick = e => { const b=e.target.closest("[data-tab]"); if(b){ location.hash = b.dataset.tab; showTab(b.dataset.tab); } };
 addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+$("#go-settings").onclick = $("#price-pill").onclick = () => { location.hash = "settings"; showTab("settings"); };
 
 // ---------- INVENTORY ----------
 const INV_COLS = [
-  ["", null], ["Card","name"], ["Cond","cond"], ["Qty","qty"], ["Paid","cost"], ["Market","market"], ["Min","min"], ["Sell for","sell"], ["Profit","profit"], ["Price age","marketAt"], ["Added","addedAt"]
+  ["", null], ["Card","name"], ["Cond","cond"], ["Qty","qty"], ["Paid","cost"], ["Market","market"], ["Sell for","sell"], ["Profit","profit"], ["Price age","marketAt"], ["Added","addedAt"]
 ];
 const COND_RANK = { NM:0, LP:1, MP:2, HP:3, DMG:4 };
 const invVal = (c, k) => k==="cond" ? (isGraded(c) ? 8 : c.kind==="Sealed"||c.kind==="Other" ? 9 : COND_RANK[c.cond] ?? 5) : k==="min" ? floorOf(c.cost) : k==="sell" ? suggestedOf(c) : k==="profit" ? (c.market||0)-(c.cost||0) : c[k];
@@ -1169,8 +1195,8 @@ function renderInventory(){
   list.sort((a,b) => { const x=invVal(a,k), y=invVal(b,k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * d; });
   $("#inv-count").textContent = `${list.length} line${list.length===1?"":"s"}`;
   INV_SHOWN = list; drawJtButton();
-  const head = `<thead><tr>${INV_COLS.map(([l,key],i) => `<th class="${key?"sort":""} ${key===k?"sorted":""} ${i>=3&&i<=8?"n":""}" ${key?`data-s="${key}"`:""}>${l}${key===k?(d>0?" ▲":" ▼"):""}</th>`).join("")}<th></th></tr></thead>`;
-  if(!list.length){ $("#inv-table").innerHTML = head + (S.cards.length ? empty("search","No cards match","Try part of the name, the set, or show sold cards.",12) : empty("fan","Your inventory is empty","Add a card here, or complete a purchase on the Buy tab and it lands here.",12)); return; }
+  const head = `<thead><tr>${INV_COLS.map(([l,key],i) => `<th class="${key?"sort":""} ${key===k?"sorted":""} ${i>=3?"n":""}" ${key?`data-s="${key}"`:""}>${l}${key===k?(d>0?" ▲":" ▼"):""}</th>`).join("")}<th></th></tr></thead>`;
+  if(!list.length){ $("#inv-table").innerHTML = head + (S.cards.length ? empty("search","No cards match","Try part of the name, the set, or show sold cards.",11) : empty("fan","Your inventory is empty","Add a card here, or complete a purchase on the Buy tab and it lands here.",11)); return; }
   $("#inv-table").innerHTML = head + "<tbody>" + list.map(c => {
     const fl = floorOf(c.cost), sug = suggestedOf(c), prof = (c.market||0) - c.cost, pctP = c.cost>0 ? Math.round(prof/c.cost*100) : 0;
     const stale = !c.custom && !isGraded(c) && (!c.marketAt || (Date.now()-c.marketAt) > 14*86400000);
@@ -1182,8 +1208,7 @@ function renderInventory(){
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
       <td class="n">${money(c.cost)}</td>
       <td class="n">${money(c.market)}${priceSrc(c)==="jt"?` <span class="chip acc" title="Condition price from JustTCG">JustTCG</span>`:priceSrc(c)==="own"?` <span class="chip" title="You set this price">yours</span>`:""}</td>
-      <td class="n muted">${money(fl)}</td>
-      <td class="n"><b>${money(sug)}</b></td>
+      <td class="n"><b>${money(sug)}</b><div class="small muted" title="Lowest price that still makes your ${minP()}% minimum profit">min ${money(fl)}</div></td>
       <td class="n ${prof>=c.cost*minP()/100?"good":"bad"}">${prof>=0?"+":""}${money(prof)} <span class="small">(${pctP}%)</span></td>
       <td class="n ${stale?"":"muted"}">${c.custom||isGraded(c)?"—":stale?`<span class="chip warn">${ago(c.marketAt)}</span>`:ago(c.marketAt)}${cpFresh(c)?`<div class="small muted">${esc(c.cpCond)} checked ${ago(c.cpAt)}</div>`:""}</td>
       <td class="n muted small">${c.addedAt?dayStr(c.addedAt):""}</td>
@@ -1257,7 +1282,7 @@ function cardModal(c, defaults={}){
           <div style="grid-column:1/3"><label>Card name</label><input name="name" required value="${esc(c.name)}" placeholder="Type to search the catalog, e.g. charizard base psa 10"></div>
           <div><label>Set / number</label><input name="set" value="${esc(c.set)}"></div>
           <div style="grid-column:1/-1" class="cm-sr" id="cm-sr" hidden><div class="dd-row"><select data-gsel title="Game"></select><span class="muted small" data-st style="flex:1;min-width:0"></span><button type="button" class="x" data-close title="Close">×</button></div><div class="cm-res" data-res></div></div>
-          <div class="raw-only"><label>Condition</label><select name="cond">${CONDS.map(x=>`<option ${x===c.cond?"selected":""}>${x}</option>`).join("")}</select></div>
+          <div class="raw-only"><label>Condition</label><div class="seg cond cm-cond">${CONDS.map(x=>`<button type="button" data-c="${x}" class="${x===(c.cond||"NM")?"on":""}">${x}</button>`).join("")}</div><select name="cond" hidden>${CONDS.map(x=>`<option ${x===(c.cond||"NM")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Type</label><select name="kind">${KINDS.map(x=>`<option ${x===(c.kind||"Card")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Qty in stock</label><input name="qty" type="number" min="0" value="${c.qty??1}"></div>
           <div class="sealed-only" title="Its value is the raw near-mint price times this %, and follows the daily price update"><label>Sealed promo value (% of raw)</label><input name="premium" type="number" min="1" step="1" value="${c.premium || lsGet("cd-premium") || 100}"></div>
@@ -1346,6 +1371,7 @@ function cardModal(c, defaults={}){
       payEl.onclick = e => { const b = e.target.closest("[data-p]"); if(!b) return; paidPct = Number(b.dataset.p); drawPay(); syncPaid(); };
       f.addEventListener("input", e => { if(e.target===f.market && link && !lock){ lock=true; drawLink(); } if(e.target===f.cost && paidPct!=null){ paidPct = null; drawPay(); } if(e.target===f.market) syncPaid(); calc(); if(e.target===f.name||e.target===f.set) look(); });
       ["cond","vintage"].forEach(n => f[n].addEventListener("change", recalc));
+      m.querySelector(".cm-cond").onclick = e => { const b = e.target.closest("[data-c]"); if(!b) return; f.cond.value = b.dataset.c; m.querySelectorAll(".cm-cond button").forEach(x => x.classList.toggle("on", x===b)); f.cond.dispatchEvent(new Event("change")); };
       f.grade.addEventListener("input", ebay); f.grader.addEventListener("change", ebay);
       f.sealedPromo.addEventListener("change", () => { f.classList.toggle("is-sealed", f.sealedPromo.checked); if(f.sealedPromo.checked && link) lock = false; recalc(); drawLink(); if(f.sealedPromo.checked) f.premium.focus(); });
       f.premium.addEventListener("input", () => { if(Number(f.premium.value) > 0) lsSet("cd-premium", Number(f.premium.value)); recalc(); drawLink(); });
@@ -1847,7 +1873,7 @@ function salesByDay(days){
 function niceMax(v){ if(v<=0) return 100; const p = Math.pow(10, Math.floor(Math.log10(v))); for(const m of [1,2,2.5,5,10]) if(m*p >= v) return m*p; return 10*p; }
 const shortMoney = n => n>=1000 ? "$"+(n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,"")+"k" : "$"+Math.round(n);
 function drawSalesChart(el, data){
-  const W=640, H=190, L=44, R=8, T=10, B=24, iw=W-L-R, ih=H-T-B, n=data.length, step=iw/n, bw=Math.max(3, step-2);
+  const W=Math.max(420, Math.round(el.clientWidth || 640)), H=180, L=44, R=8, T=10, B=24, iw=W-L-R, ih=H-T-B, n=data.length, step=iw/n, bw=Math.max(3, Math.min(22, step-4));
   const max = niceMax(Math.max(...data.map(d=>d.total)));
   const y = v => T + ih - (v/max)*ih;
   const ticks = [0, max/2, max];
@@ -1898,8 +1924,8 @@ function renderOverview(){
   const unlinked = inStock.filter(c => !c.productId && !c.custom && (!c.kind || c.kind==="Card")).length;
   const noCert = inStock.filter(c => isGraded(c) && !c.cert).length;
   const ps = priceStatus();
-  if(ps && ps.level==="bad") att.push(attItem("b","warn","Price update didn't run", ps.txt, "#money"));
-  else if(ps && ps.level==="warn") att.push(attItem("w","warn", ps.short, ps.txt, "#money"));
+  if(ps && ps.level==="bad") att.push(attItem("b","warn","Price update didn't run", ps.txt, "#settings"));
+  else if(ps && ps.level==="warn") att.push(attItem("w","warn", ps.short, ps.txt, "#settings"));
   if(under) att.push(attItem("b","trend", `${under} card${under===1?"":"s"} worth less than your minimum`, `Market has dropped below what you paid plus ${minP()}%.`, "#inventory:profit"));
   const upd = inStock.filter(needsUpdate).length;
   if(upd) att.push(attItem("w","hourglass", `Saturday check: ${upd} card${upd===1?"":"s"} need${upd===1?"s":""} updating`, "Prices unchanged for over a week. Open each one and save to clear it.", "#inventory:upd"));
@@ -2009,10 +2035,10 @@ function drawValueChart(pre, all){
   // price movement: cards held at both ends, at the smaller of the two quantities
   let mv0 = 0, mv1 = 0; z.per.forEach((e,k) => { const s = a.per[k]; if(e && s){ const q = Math.min(e[0], s[0]); mv0 += q*s[1]; mv1 += q*e[1]; } });
   const pm = mv0 > 0 ? (mv1-mv0)/mv0*100 : null, gain = z.value - z.paid;
-  const sgn = n => (n>=0?"+":"") + money(n), pct = n => (n>=0?"▲ ":"▼ ") + Math.abs(n).toFixed(1) + "%";
+  const sgn = n => (n>=0?"+":"") + money(n), pct = n => (n>=0?"▲ ":"▼ ") + Math.abs(n).toFixed(1) + "%", pctS = n => (n>=0?"+":"−") + Math.abs(n).toFixed(1) + "%";
   kp.innerHTML = `<div>Value now<b>${money(z.value)}</b></div>
     <div>Change since ${a.today?"today":new Date(a.t).toLocaleDateString(undefined,{month:"short",day:"numeric"})}<b class="${chg>=0?"good":"bad"}">${sgn(chg)}${a.value>0?`<span class="delta">${pct(chg/a.value*100)}</span>`:""}</b></div>
-    <div title="How prices moved on the cards you held the whole time, leaving out buys and sales">Price movement<b class="${pm==null?"":pm>=0?"good":"bad"}">${pm==null?"—":pct(pm)}${pm!=null?`<span class="delta" style="color:var(--muted)">${sgn(mv1-mv0)}</span>`:""}</b></div>
+    <div title="How prices moved on the cards you held the whole time, leaving out buys and sales">Price movement<b class="${pm==null?"":pm>=0?"good":"bad"}">${pm==null?"—":pctS(pm)}${pm!=null?`<span class="delta">${sgn(mv1-mv0)}</span>`:""}</b></div>
     <div>Value over what you paid<b class="${gain>=0?"good":"bad"}">${sgn(gain)}</b></div>`;
   // chart
   const W=Math.max(420, Math.round(el.clientWidth || 720)), H=W>900?240:210, L=50, R=10, T=12, B=24, iw=W-L-R, ih=H-T-B;
@@ -2064,7 +2090,7 @@ function drawValueCharts(){
   const all = valueSeries(ui2.vk);
   drawValueChart("ov", all); drawValueChart("m", all);
 }
-let vcW = 0; addEventListener("resize", () => { clearTimeout(vcW); vcW = setTimeout(drawValueCharts, 150); });
+let vcW = 0; addEventListener("resize", () => { clearTimeout(vcW); vcW = setTimeout(() => ui.tab==="overview" ? renderOverview() : drawValueCharts(), 150); });
 document.addEventListener("click", e => {
   const k = e.target.closest(".vc-kind [data-vk]"), r = e.target.closest(".vc-range [data-vr]");
   if(k){ ui2.vk = k.dataset.vk; lsSet("cd-vk", ui2.vk); drawValueCharts(); }
@@ -2126,7 +2152,7 @@ function drawJtButton(){
   const b = $("#inv-jt"); if(!b) return;
   const el = INV_SHOWN.filter(jtEligible);
   b.hidden = !el.length;
-  if(el.length) b.textContent = JT.running ? "Checking prices…" : `Check condition prices (${el.length} card${el.length===1?"":"s"} · ${jtLookups(el)} lookup${jtLookups(el)===1?"":"s"})`;
+  if(el.length){ b.textContent = JT.running ? "Checking prices…" : `JustTCG prices (${el.length})`; b.title = `Look up the TCGplayer price for the condition of the ${el.length} played card${el.length===1?"":"s"} shown on JustTCG (${jtLookups(el)} lookup${jtLookups(el)===1?"":"s"})`; }
   b.disabled = JT.running;
 }
 async function jtPost(items){
@@ -2193,7 +2219,7 @@ $("#jt-save").onclick = async () => {
 };
 $("#inv-jt").onclick = () => {
   if(!needDb()) return;
-  if(!JT.key){ toast("Add your JustTCG key first: Money › Price data"); return; }
+  if(!JT.key){ toast("Add your JustTCG key first: Settings › Price data"); return; }
   const el = INV_SHOWN.filter(jtEligible), own = el.filter(c => c.lock), st = JT.state||{}, u = st.usage||{};
   openModal(`<h3>Check condition prices</h3>
     <p>Looks up the TCGplayer price for the condition of each of the <b>${el.length}</b> card${el.length===1?"":"s"} shown (near mint cards are skipped — the nightly prices cover those). This uses <b>${jtLookups(el)}</b> of your JustTCG lookups${u.apiDailyRequestsRemaining!=null?` (you had ${u.apiDailyRequestsRemaining} left today, ${u.apiRequestsRemaining} this month, at the last check)`:""}.</p>
