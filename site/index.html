@@ -2031,6 +2031,10 @@ function drawValueChart(pre, all){
   if(!any || data.length < 2){
     kp.innerHTML = ""; el.innerHTML = `<div class="empty">${ART.fan()}<b>No ${label} in this range</b>Cards you hold show up here with their value day by day.</div>`; note.textContent = ""; return;
   }
+  // nothing changed since the last drawing (same numbers, size and settings): keep it, so a hover stays put
+  const sig = [ui2.vk, ui2.vr, el.clientWidth, HIST.idx ? HIST.idx.builtAt : 0, ...data.map(p => p.value.toFixed(2)+"/"+p.paid.toFixed(2)+"/"+p.units)].join("|");
+  if(el._sig === sig && el.querySelector("svg")) return;
+  el._sig = sig;
   const a = data[0], z = data[data.length-1], chg = z.value - a.value;
   // price movement: cards held at both ends, at the smaller of the two quantities
   let mv0 = 0, mv1 = 0; z.per.forEach((e,k) => { const s = a.per[k]; if(e && s){ const q = Math.min(e[0], s[0]); mv0 += q*s[1]; mv1 += q*e[1]; } });
@@ -2103,7 +2107,9 @@ $("#ov-att").onclick = e => { const a = e.target.closest("[data-goto]"); if(!a) 
 $("#ov-slab").onclick = e => { e.preventDefault(); location.hash = "graded"; showTab("graded"); cardModal(null, { kind:"Graded", cond:"" }); };
 
 // ---------- render all ----------
-function renderAll(){ renderOverview(); renderInventory(); renderGraded(); renderBuy(); renderSell(); renderTrade(); renderMoney(); }
+let renderT = 0;
+function scheduleRender(){ clearTimeout(renderT); renderT = setTimeout(renderAll, 120); }
+function renderAll(){ clearTimeout(renderT); renderOverview(); renderInventory(); renderGraded(); renderBuy(); renderSell(); renderTrade(); renderMoney(); }
 
 // refresh inventory market prices from the nightly price lookup
 const refreshed = new Set(); let refreshing = false;
@@ -2116,14 +2122,21 @@ async function refreshInventoryPrices(){
   try {
     const nb = CAT.manifest.priceBuckets || 32, buckets = {};
     for(const b of [...new Set(due.map(c => c.productId % nb))]) buckets[b] = await getBucket(b);
-    let n = 0;
+    // all changes go in one batched write, so the page redraws once instead of once per card
+    const ups = [];
     for(const c of due){
       refreshed.add(c.id+":"+built);
       const pr = (buckets[c.productId % nb] || {})[c.productId]; if(!pr) continue;
       const nm = pr[c.sub] ?? Object.values(pr)[0]; if(nm == null) continue;
-      try { await db.collection("cards").doc(c.id).update(cpFresh(c) ? { nm:r2(nm), marketAt:Math.max(c.marketAt||0, c.cpAt||0) || built } : { nm:r2(nm), market:cardPrice(c, nm), marketAt:built }); n++; } catch(e){ console.warn("price refresh", c.id, e); }
+      if(cpFresh(c)){ if(r2(nm) !== r2(c.nm)) ups.push([c.id, { nm:r2(nm) }]); }   // JustTCG price stays; its age keeps counting for the Saturday check
+      else ups.push([c.id, { nm:r2(nm), market:cardPrice(c, nm), marketAt:built }]);
     }
-    if(n) toast(`Updated market prices on ${n} card${n===1?"":"s"}`);
+    const moved = ups.filter(([id,d]) => { const c = S.cards.find(x => x.id===id); return c && d.market != null && r2(d.market) !== r2(c.market); }).length;
+    for(let i=0;i<ups.length;i+=400){
+      const b = F.writeBatch(fs); ups.slice(i,i+400).forEach(([id,d]) => b.update(F.doc(fs,"cards",id), d));
+      try { await settle(b.commit()); } catch(e){ console.warn("price refresh", e); }
+    }
+    if(moved) toast(`New market prices on ${moved} card${moved===1?"":"s"}`);
   } catch(e){ console.warn("refresh prices", e); }
   finally { refreshing = false; }
 }
@@ -2283,7 +2296,7 @@ function connect(user){
       S[name] = snap.docs.map(d => ({ id:d.id, ...d.data() }));
       S.loaded[name] = true;
       if(pending.delete(name) && !pending.size){ clearTimeout(timer); banner(""); }
-      renderAll();
+      scheduleRender();
       if(name==="cards") refreshInventoryPrices();
     }, onErr);
   }
