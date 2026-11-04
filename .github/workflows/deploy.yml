@@ -111,7 +111,6 @@ jobs:
           if bad:
               sys.exit(f"Not deploying: these games failed to build: {bad}. Yesterday's site stays live.")
           EOF
-          rm -f site/catalog/publish_files.json
 
       - uses: actions/upload-pages-artifact@v3
         with:

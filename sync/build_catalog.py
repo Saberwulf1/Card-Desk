@@ -66,7 +66,7 @@ def words(name):
     return out
 
 
-def dump_gz(path, obj):  # plain JSON: the artifact host does not serve .gz files
+def dump_gz(path, obj):  # plain JSON (name kept from an older gzip version)
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(obj, fh, separators=(",", ":"), ensure_ascii=False)
 
@@ -227,14 +227,7 @@ def main():
     manifest["seconds"] = round(time.time() - started)
     with open(os.path.join(OUT, "manifest.json"), "w") as fh:
         json.dump(manifest, fh, separators=(",", ":"), ensure_ascii=False)
-    # file list for publish_files (patch mode): every catalog file, served under catalog/
-    root = os.path.abspath(OUT)
-    files = [{"as": "catalog/" + os.path.relpath(os.path.join(d, f), root).replace(os.sep, "/"), "path": os.path.join(d, f)}
-             for d, _, fs in os.walk(root) for f in sorted(fs) if f.endswith(".json") and f != "publish_files.json"]
-    with open(os.path.join(root, "publish_files.json"), "w") as fh:
-        json.dump(sorted(files, key=lambda x: x["as"]), fh)
     print(json.dumps({k: v for k, v in manifest.items() if k != "games"}))
-    print(f"{len(files)} files listed in {os.path.join(root, 'publish_files.json')}")
 
 
 if __name__ == "__main__":
