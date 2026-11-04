@@ -162,6 +162,11 @@
   .chip.good{background:var(--good-bg);color:var(--good);border-color:transparent}
   .chip.bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
   .chip.warn{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+  .chip.upd{background:var(--warn);color:#1A1405;border-color:transparent;font-weight:700}
+  .tbl tr.needs td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+  .review{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 14px;padding:11px 16px;border-radius:var(--r);background:var(--warn-bg);border:1px solid rgba(245,194,90,.35);color:var(--ink)}
+  .review svg{width:20px;height:20px;color:var(--warn);flex:none}
+  .review b{color:var(--warn)}
   .chip.acc{background:var(--accent-bg);color:var(--accent);border-color:transparent}
   .chip.vin{background:linear-gradient(90deg,#f7e3b0,#f3d38a);color:#6b4500;border-color:transparent}
   .total{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0;gap:10px}
@@ -501,11 +506,13 @@
   <section class="view" id="v-inventory">
     <div class="ph"><h1>Inventory</h1><p>Everything in your boxes and binders, priced and ready to sell.</p></div>
     <div class="stats" id="inv-stats"></div>
+    <div class="review" id="inv-review" hidden></div>
     <div class="panel flush">
       <div class="row" style="padding:12px 16px">
         <div class="search" style="width:340px;max-width:100%"><i data-icon="search"></i><input id="inv-search" placeholder="Search name, set or printing…"></div>
         <div class="seg" id="inv-kind"><button data-k="all" class="on">All</button><button data-k="raw">Raw cards</button><button data-k="other">Sealed &amp; other</button></div>
         <select id="inv-cond" title="Condition" style="width:auto"><option value="">Any condition</option><option value="played">Not near mint</option><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select>
+        <select id="inv-src" title="Where the price comes from" style="width:auto"><option value="">Any price source</option><optgroup label="Price from"><option value="tcg">TCGplayer (nightly)</option><option value="jt">JustTCG condition price</option><option value="own">Your own price (typed in)</option></optgroup><optgroup label="Other"><option value="hand">Added by hand</option><option value="upd">Needs update</option></optgroup></select>
         <label class="chk"><input type="checkbox" id="inv-sold"> Show sold</label>
         <button class="btn" id="inv-jt" hidden title="Look up the TCGplayer price for each shown card's condition on JustTCG"></button>
         <span class="muted small" id="inv-count"></span>
@@ -1125,6 +1132,19 @@ const INV_COLS = [
 ];
 const COND_RANK = { NM:0, LP:1, MP:2, HP:3, DMG:4 };
 const invVal = (c, k) => k==="cond" ? (isGraded(c) ? 8 : c.kind==="Sealed"||c.kind==="Other" ? 9 : COND_RANK[c.cond] ?? 5) : k==="min" ? floorOf(c.cost) : k==="sell" ? suggestedOf(c) : k==="profit" ? (c.market||0)-(c.cost||0) : c[k];
+// where a card's price comes from
+function priceSrc(c){
+  if(cpFresh(c)) return "jt";
+  if(c.productId && !c.lock && !c.custom && !isGraded(c)) return "tcg";
+  return "own";
+}
+// added in the card window rather than bought on Buy / Trade
+const isHandAdded = c => { if(!c.purchaseId) return true; const p = S.purchases.find(x => x.id===c.purchaseId); return !p || !!p.manual; };
+// Saturday check: every Saturday, cards in stock whose price hasn't been updated for over a week are flagged.
+// A flag stays until the card is saved in the card window (or its price updates).
+function lastSaturday(){ const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - ((d.getDay()+1) % 7)); return d.getTime(); }
+const touchedAt = c => Math.max(c.marketAt||0, c.reviewedAt||0, c.cpAt||0, c.addedAt||0);
+const needsUpdate = c => (c.qty||0) > 0 && touchedAt(c) < lastSaturday() - 7*86400000;
 function renderInventory(){
   const inStock = S.cards.filter(c => (c.qty||0) > 0);
   let units=0, cost=0, mkt=0;
@@ -1134,12 +1154,17 @@ function renderInventory(){
     <div class="stat">${svgIcon("coins","bg")}<div class="k">Paid for stock</div><div class="v">${money(cost)}</div></div>
     <div class="stat">${svgIcon("tag","bg")}<div class="k">Market value</div><div class="v">${money(mkt)}</div></div>
     <div class="stat hero">${svgIcon("trend","bg")}<div class="k">Potential profit</div><div class="v ${mkt-cost>=0?"good":"bad"}">${money(mkt-cost)}</div></div>
-    <div class="stat">${svgIcon("hourglass","bg")}<div class="k">Prices older than 14 days</div><div class="v">${inStock.filter(c=>!c.custom && !isGraded(c) && (!c.marketAt || Date.now()-c.marketAt>14*86400000)).length}</div></div>`;
+    <div class="stat">${svgIcon("hourglass","bg")}<div class="k">Need updating (Saturday check)</div><div class="v ${inStock.some(needsUpdate)?"warn-t":""}">${inStock.filter(needsUpdate).length}</div></div>`;
+  const nUpd = inStock.filter(needsUpdate).length, rv = $("#inv-review");
+  rv.hidden = !nUpd;
+  if(nUpd) rv.innerHTML = `${svgIcon("bell")}<span><b>${nUpd} card${nUpd===1?"":"s"} need${nUpd===1?"s":""} updating.</b> Prices unchanged for over a week as of ${new Date(lastSaturday()).toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})}. Open each one, check the price and save. The mark stays until you do.</span><span class="spacer"></span>${$("#inv-src").value==="upd"?"":`<button class="btn sm" id="inv-review-show">Show them</button>`}`;
   const q = $("#inv-search").value.trim().toLowerCase(), showSold = $("#inv-sold").checked;
   const kindOk = c => ui.invKind==="all" || (ui.invKind==="raw" ? (!c.kind || c.kind==="Card") : (c.kind==="Sealed" || c.kind==="Other"));
   const cf = $("#inv-cond").value;
   const condOk = c => !cf || (isGraded(c) || c.kind==="Sealed" || c.kind==="Other" ? false : cf==="played" ? priceCond(c)!=="NM" : priceCond(c)===cf);
-  const list = S.cards.filter(c => kindOk(c) && condOk(c) && (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)));
+  const sf = $("#inv-src").value;
+  const srcOk = c => !sf || (sf==="hand" ? isHandAdded(c) : sf==="upd" ? needsUpdate(c) : priceSrc(c)===sf);
+  const list = S.cards.filter(c => kindOk(c) && condOk(c) && srcOk(c) && (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)));
   const k = ui.invSort, d = ui.invDir;
   list.sort((a,b) => { const x=invVal(a,k), y=invVal(b,k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * d; });
   $("#inv-count").textContent = `${list.length} line${list.length===1?"":"s"}`;
@@ -1149,13 +1174,14 @@ function renderInventory(){
   $("#inv-table").innerHTML = head + "<tbody>" + list.map(c => {
     const fl = floorOf(c.cost), sug = suggestedOf(c), prof = (c.market||0) - c.cost, pctP = c.cost>0 ? Math.round(prof/c.cost*100) : 0;
     const stale = !c.custom && !isGraded(c) && (!c.marketAt || (Date.now()-c.marketAt) > 14*86400000);
-    return `<tr class="tap" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}">
+    const nu = needsUpdate(c);
+    return `<tr class="tap ${nu?"needs":""}" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}" ${nu?`title="Needs updating: price unchanged for over a week. Open the card and save to clear."`:""}>
       <td class="thc">${thumb(c.productId)}</td>
-      <td class="cc"><div class="nm">${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""} ${c.custom?`<span class="chip warn">custom</span>`:""} ${c.sealedPromo?`<span class="chip acc" title="Still in its wrapper: raw NM price × ${premOf(c)}%">sealed promo ${premOf(c)}%</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
+      <td class="cc"><div class="nm">${nu?`<span class="chip upd">update</span> `:""}${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""} ${c.custom?`<span class="chip warn">custom</span>`:""} ${c.sealedPromo?`<span class="chip acc" title="Still in its wrapper: raw NM price × ${premOf(c)}%">sealed promo ${premOf(c)}%</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
       <td>${condCell(c)}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
       <td class="n">${money(c.cost)}</td>
-      <td class="n">${money(c.market)}${c.productId&&c.lock&&!isGraded(c)?` <span class="chip" title="You set this price">yours</span>`:""}</td>
+      <td class="n">${money(c.market)}${priceSrc(c)==="jt"?` <span class="chip acc" title="Condition price from JustTCG">JustTCG</span>`:priceSrc(c)==="own"?` <span class="chip" title="You set this price">yours</span>`:""}</td>
       <td class="n muted">${money(fl)}</td>
       <td class="n"><b>${money(sug)}</b></td>
       <td class="n ${prof>=c.cost*minP()/100?"good":"bad"}">${prof>=0?"+":""}${money(prof)} <span class="small">(${pctP}%)</span></td>
@@ -1166,6 +1192,8 @@ function renderInventory(){
 }
 $("#inv-search").addEventListener("input", renderInventory);
 $("#inv-sold").addEventListener("change", renderInventory);
+$("#inv-src").addEventListener("change", renderInventory);
+$("#inv-review").onclick = e => { if(e.target.closest("#inv-review-show")){ $("#inv-src").value = "upd"; renderInventory(); } };
 $("#inv-cond").addEventListener("change", () => { if($("#inv-cond").value && ui.invSort!=="cond"){ ui.invSort="cond"; ui.invDir=1; } renderInventory(); });
 let INV_SHOWN = [];
 $("#inv-table").onclick = e => {
@@ -1196,9 +1224,10 @@ function renderGraded(){
   if(!list.length){ $("#gr-table").innerHTML = head + (all.length ? empty("search","No slabs match","Try the name, grader, grade or cert number.",11) : empty("fan","No graded cards yet","Add a slab here, or buy one on the Buy tab with Type set to Graded.",11)); return; }
   $("#gr-table").innerHTML = head + "<tbody>" + list.map(c => {
     const sug = suggestedOf(c), prof = (c.market||0) - c.cost;
-    return `<tr class="tap" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}">
+    const nu = needsUpdate(c);
+    return `<tr class="tap ${nu?"needs":""}" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}" ${nu?`title="Needs updating: value unchanged for over a week. Open the slab and save to clear."`:""}>
       <td class="thc">${thumb(c.productId)}</td>
-      <td class="cc"><div class="nm">${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""}</div><div class="sub">${esc([c.set, c.sub].filter(Boolean).join(" · "))}</div></td>
+      <td class="cc"><div class="nm">${nu?`<span class="chip upd">update</span> `:""}${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""}</div><div class="sub">${esc([c.set, c.sub].filter(Boolean).join(" · "))}</div></td>
       <td><span class="slab">${esc(gradeLabel(c))}</span></td>
       <td class="muted">${esc(c.cert||"—")}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
@@ -1339,6 +1368,7 @@ function cardModal(c, defaults={}){
         if(link) Object.assign(data, { productId:link.productId, sub:link.sub, game:link.game, nm:r2(link.nm), lock: g() ? true : lock });
         else if(!isNew && c.productId) Object.assign(data, { productId:null, sub:null, game:null, nm:null, lock:false });
         if(isNew || newMarket !== c.market) data.marketAt = Date.now();
+        data.reviewedAt = Date.now();   // clears the Saturday "needs update" mark
         // values you set yourself (graded, your own price, not on TCGplayer): keep each change for the value chart
         if(!(link && !g() && !f.custom.checked && !lock) && (isNew || newMarket !== r2(c.market))){
           const prior = isNew ? [] : (Array.isArray(c.vlog) && c.vlog.length ? c.vlog : [{ at:c.marketAt||c.addedAt||Date.now(), v:r2(c.market) }]);
@@ -1864,7 +1894,6 @@ function renderOverview(){
   else $("#ov-chart").innerHTML = `<div class="empty">${ART.receipt()}<b>No sales in the last 30 days</b>Completed sales and trades show up here day by day.</div>`;
   // needs attention
   const att = [];
-  const stale = inStock.filter(c => !c.custom && !isGraded(c) && (!c.marketAt || now-c.marketAt > 14*86400000)).length;
   const under = inStock.filter(c => (c.market||0) < floorOf(c.cost)).length;
   const unlinked = inStock.filter(c => !c.productId && !c.custom && (!c.kind || c.kind==="Card")).length;
   const noCert = inStock.filter(c => isGraded(c) && !c.cert).length;
@@ -1872,7 +1901,8 @@ function renderOverview(){
   if(ps && ps.level==="bad") att.push(attItem("b","warn","Price update didn't run", ps.txt, "#money"));
   else if(ps && ps.level==="warn") att.push(attItem("w","warn", ps.short, ps.txt, "#money"));
   if(under) att.push(attItem("b","trend", `${under} card${under===1?"":"s"} worth less than your minimum`, `Market has dropped below what you paid plus ${minP()}%.`, "#inventory:profit"));
-  if(stale) att.push(attItem("w","hourglass", `${stale} price${stale===1?"":"s"} older than 14 days`, "Link them to the catalog or update them by hand.", "#inventory:marketAt"));
+  const upd = inStock.filter(needsUpdate).length;
+  if(upd) att.push(attItem("w","hourglass", `Saturday check: ${upd} card${upd===1?"":"s"} need${upd===1?"s":""} updating`, "Prices unchanged for over a week. Open each one and save to clear it.", "#inventory:upd"));
   if(unlinked) att.push(attItem("n","link", `${unlinked} card${unlinked===1?"":"s"} not linked to the catalog`, "No picture and no nightly price. Open the card and type its name to link it.", "#inventory:name"));
   if(noCert) att.push(attItem("n","slab", `${noCert} slab${noCert===1?"":"s"} without a cert number`, "Add it so you can verify the slab later.", "#graded"));
   if(buy.items.length) att.push(attItem("n","buy", `Unfinished buy list (${buy.items.length} line${buy.items.length===1?"":"s"})`, `Offer so far ${money(buy.items.reduce((s,it)=>s+payEach(it,buy.pct)*it.qty,0))}.`, "#buy","Open"));
@@ -2042,6 +2072,7 @@ document.addEventListener("click", e => {
 });
 $("#ov-tops").onclick = e => { const it = e.target.closest("[data-id]"); if(it) cardModal(S.cards.find(c => c.id===it.dataset.id)); };
 $("#ov-att").onclick = e => { const a = e.target.closest("[data-goto]"); if(!a) return; const [tab, sort] = a.dataset.goto.slice(1).split(":");
+  if(sort==="upd"){ e.preventDefault(); $("#inv-src").value = "upd"; location.hash = tab; showTab(tab); renderInventory(); return; }
   if(sort){ e.preventDefault(); ui.invSort = sort; ui.invDir = sort==="name" ? 1 : sort==="profit" ? 1 : 1; ui.invKind = "all"; $("#inv-kind").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x.dataset.k==="all")); location.hash = tab; showTab(tab); renderInventory(); } };
 $("#ov-slab").onclick = e => { e.preventDefault(); location.hash = "graded"; showTab("graded"); cardModal(null, { kind:"Graded", cond:"" }); };
 
