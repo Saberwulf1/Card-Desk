@@ -375,6 +375,8 @@
   .vkey i.p{border-top:1.6px dashed var(--muted)}
   .vnote{margin:6px 0 0;line-height:1.5;max-width:900px}
   .vhow{margin-top:8px}
+  .exp-cats{display:flex;flex-wrap:wrap;gap:6px;padding:12px 18px 4px}
+  .exp-cats .chip{font-size:12px;padding:3px 10px}
   .vhow summary{cursor:pointer;font-size:12.5px;color:var(--muted);list-style:none;display:inline-flex;align-items:center;gap:6px}
   .vhow summary::-webkit-details-marker{display:none}
   .vhow summary::before{content:"i";display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid var(--line-2);font:600 10px var(--body)}
@@ -636,9 +638,18 @@
       <div class="chart vchart" id="m-vchart"></div>
       <details class="vhow"><summary>How these values are worked out</summary><p class="muted small vnote" id="m-vnote"></p></details>
     </div>
-    <div class="cols c-money" style="margin-bottom:20px">
+    <div class="cols c-money">
+      <div class="stack">
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="money"></span>By month</h2></div><div id="m-months" class="tbl-wrap"></div></div>
-        <div class="panel"><div class="panel-h"><h2><span class="ic y" data-icon="receipt"></span>Add an expense</h2></div>
+        <div class="panel flush">
+          <div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Activity</h2><span class="spacer"></span>
+            <div class="seg" id="m-act"><button data-a="sales" class="on">Sales</button><button data-a="purchases">Purchases</button><button data-a="trades">Trades</button></div></div>
+          <div class="tbl-wrap" style="max-height:560px;margin-top:10px"><table class="tbl" id="m-activity"></table></div>
+        </div>
+      </div>
+      <div class="panel flush" id="m-exp-panel">
+        <div class="panel-h"><h2><span class="ic y" data-icon="receipt"></span>Expenses</h2><span class="spacer"></span><span class="muted small" id="m-exp-sum"></span></div>
+        <div style="padding:12px 18px 14px;border-bottom:1px solid var(--line)">
           <form id="exp-form" class="grid g2" autocomplete="off">
             <div style="grid-column:1/-1"><label>What for</label><input id="e-desc" required placeholder="e.g. Show table fee, sleeves, shipping"></div>
             <div><label>Category</label><select id="e-cat"><option>Supplies</option><option>Shipping</option><option>Event / table fee</option><option>Fees</option><option>Travel</option><option>Other</option></select></div>
@@ -647,12 +658,10 @@
             <div style="align-self:end"><button class="btn primary" type="submit" style="width:100%">Add expense</button></div>
           </form>
         </div>
+        <div class="exp-cats" id="m-exp-cats"></div>
+        <div class="tbl-wrap" style="max-height:520px"><table class="tbl" id="m-exp-list"></table></div>
+      </div>
     </div>
-        <div class="panel flush">
-          <div class="panel-h"><h2><span class="ic" data-icon="clock"></span>Activity</h2><span class="spacer"></span>
-            <div class="seg" id="m-act"><button data-a="sales" class="on">Sales</button><button data-a="purchases">Purchases</button><button data-a="trades">Trades</button><button data-a="expenses">Expenses</button></div></div>
-          <div class="tbl-wrap" style="max-height:560px;margin-top:10px"><table class="tbl" id="m-activity"></table></div>
-        </div>
   </section>
 
   <!-- SETTINGS -->
@@ -720,7 +729,8 @@ const GRADERS = ["PSA","BGS","CGC","SGC","TAG","ACE","Other"];
 
 const S = { cards:[], purchases:[], sales:[], expenses:[], trades:[], settings:{minProfit:10}, loaded:{} };
 let db = null;
-const ui = { tab:"inventory", invSort:"addedAt", invDir:-1, invKind:"all", period:"month", act:"sales" };
+const savedSort = k => { try { return JSON.parse(localStorage.getItem(k)) || {}; } catch(e){ return {}; } };
+const ui = { tab:"inventory", invSort:savedSort("cd-isort").k||"market", invDir:savedSort("cd-isort").d||-1, grSort:savedSort("cd-gsort").k||"market", grDir:savedSort("cd-gsort").d||-1, invKind:"all", period:"month", act:"sales" };
 
 // ---------- icons & drawings ----------
 const ICONS = {
@@ -867,7 +877,8 @@ const premOf = c => c && c.sealedPromo && Number(c.premium) > 0 ? Number(c.premi
 const priceCond = c => c.sealedPromo ? "NM" : (c.cond || "NM");
 // a JustTCG price for the card's condition (checked by hand from Inventory); used while the condition still matches
 const cpFresh = c => !!c && c.cp != null && c.cpCond === priceCond(c) && priceCond(c) !== "NM";
-const cardPrice = (c, nm) => r2((cpFresh(c) ? Number(c.cp) : condPrice(nm, priceCond(c), c.vintage, c.kind)) * premOf(c) / 100);
+// a JustTCG price moves with TCGplayer's near-mint price by the same % (cpNm = NM when it was checked)
+const cardPrice = (c, nm) => r2((cpFresh(c) ? Number(c.cp) * (Number(c.cpNm) > 0 && Number(nm) > 0 ? Number(nm)/Number(c.cpNm) : 1) : condPrice(nm, priceCond(c), c.vintage, c.kind)) * premOf(c) / 100);
 const condPrice = (nm, cond, vintage, kind) => r2((Number(nm)||0) * condPct(cond, vintage, kind) / 100);
 
 // ---------- catalog (built nightly from TCGCSV, served as this site's own files) ----------
@@ -949,7 +960,7 @@ function renderCatStatus(){
   if(!m){ txt = CAT.mErr ? "Card catalog isn't available right now — you can still enter cards by hand." : "Loading card catalog…"; short = CAT.mErr ? "Prices unavailable" : "Prices…"; level = CAT.mErr ? "bad" : "warn"; }
   else ({ txt, short, level } = priceStatus(m));
   pill.textContent = short; pill.title = txt; pill.classList.toggle("warn", level==="warn"); pill.classList.toggle("bad", level==="bad");
-  if(info) info.innerHTML = m ? `<span class="${{warn:"warn-t",bad:"bad"}[level]||""}">${esc(txt)}</span><br>${Object.values(m.games).map(g=>`${esc(g.label)}: ${g.error?`<span class="bad">failed</span>`:(g.products||0).toLocaleString()}`).join(" · ")}<br><span class="small">Cards picked from the catalog update their market price automatically when you open Card Desk after each nightly update (unless you typed your own price).</span>` : esc(txt);
+  if(info) info.innerHTML = m ? `<span class="${{warn:"warn-t",bad:"bad"}[level]||""}">${esc(txt)}</span><br>${Object.values(m.games).map(g=>`${esc(g.label)}: ${g.error?`<span class="bad">failed</span>`:(g.products||0).toLocaleString()}`).join(" · ")}<br><span class="small">Cards picked from the catalog update their market price automatically when you open Card Desk after each nightly update (a price you typed yourself moves by the same % as TCGplayer).</span>` : esc(txt);
 }
 
 // catalog result rows (click a row, or a printing button, to pick)
@@ -1117,13 +1128,14 @@ function mountInvPicker(root, { onPick, inCart, dropdown }){
   paintIcons(root);
   const qEl = root.querySelector("[data-q]"), tEl = root.querySelector("[data-t]"), ddEl = root.querySelector("[data-dd]");
   let list = [];
+  const ps = lsGet("cd-psort") || { k:"market", d:-1 };
   const open = on => { if(ddEl) ddEl.classList.toggle("open", on); };
   const draw = () => {
     const q = qEl.value.trim().toLowerCase();
     list = S.cards.filter(c => (c.qty||0) > 0 && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)));
-    list.sort(q ? (a,b)=>a.name.localeCompare(b.name) : (a,b)=>(b.addedAt||0)-(a.addedAt||0));
+    list.sort((a,b) => { const x = invVal(a,ps.k), y = invVal(b,ps.k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * ps.d; });
     const shown = list.slice(0, dropdown ? 40 : 80);
-    tEl.innerHTML = shown.length ? `<thead><tr><th></th><th>Card</th><th>Cond</th><th class="n">Left</th><th class="n">Paid</th><th class="n">Market</th></tr></thead><tbody>` + shown.map((c,i) => {
+    tEl.innerHTML = shown.length ? `<thead><tr>${[["",null],["Card","name"],["Cond","cond"],["Left","qty"],["Paid","cost"],["Market","market"]].map(([l,k],i) => `<th class="${k?"sort":""} ${k===ps.k?"sorted":""} ${i>=3?"n":""}" ${k?`data-ps="${k}"`:""}>${l}${k===ps.k?(ps.d>0?" ▲":" ▼"):""}</th>`).join("")}</tr></thead><tbody>` + shown.map((c,i) => {
       const used = inCart(c.id), left = (c.qty||0) - used;
       return `<tr class="tap" data-i="${i}" style="${left<=0?"opacity:.45":""}"><td class="thc">${thumb(c.productId)}</td><td><div class="nm">${esc(c.name)}</div><div class="sub">${esc(desc(c))}</div></td><td>${condCell(c)}</td><td class="n">${left}${used?` <span class="muted small">(+${used})</span>`:""}</td><td class="n">${money(c.cost)}</td><td class="n"><b>${money(c.market)}</b></td></tr>`;
     }).join("") + `</tbody>` : (S.cards.some(c=>c.qty>0) ? empty("search","Nothing matches","Try part of the name or the set.") : empty("fan","No cards in stock yet","Buy or add some cards first."));
@@ -1132,7 +1144,9 @@ function mountInvPicker(root, { onPick, inCart, dropdown }){
   qEl.addEventListener("focus", () => { draw(); open(true); });
   qEl.addEventListener("keydown", e => { if(e.key==="Enter" && list[0]){ e.preventDefault(); onPick(list[0]); draw(); } if(e.key==="Escape") open(false); });
   if(dropdown) document.addEventListener("mousedown", e => { if(!root.contains(e.target)) open(false); });
-  tEl.onclick = e => { const tr = e.target.closest("[data-i]"); if(!tr) return; const c = list[Number(tr.dataset.i)]; if(c){ onPick(c); draw(); } };
+  tEl.onclick = e => { const th = e.target.closest("[data-ps]");
+    if(th){ const k = th.dataset.ps; if(ps.k===k) ps.d *= -1; else { ps.k = k; ps.d = (k==="name"||k==="cond") ? 1 : -1; } lsSet("cd-psort", ps); draw(); return; }
+    const tr = e.target.closest("[data-i]"); if(!tr) return; const c = list[Number(tr.dataset.i)]; if(c){ onPick(c); draw(); } };
   const p = { draw, focus(){ qEl.focus(); } }; pickers.push(p); draw(); return p;
 }
 
@@ -1157,7 +1171,7 @@ const INV_COLS = [
   ["", null], ["Card","name"], ["Cond","cond"], ["Qty","qty"], ["Paid","cost"], ["Market","market"], ["Sell for","sell"], ["Profit","profit"], ["Price age","marketAt"], ["Added","addedAt"]
 ];
 const COND_RANK = { NM:0, LP:1, MP:2, HP:3, DMG:4 };
-const invVal = (c, k) => k==="cond" ? (isGraded(c) ? 8 : c.kind==="Sealed"||c.kind==="Other" ? 9 : COND_RANK[c.cond] ?? 5) : k==="min" ? floorOf(c.cost) : k==="sell" ? suggestedOf(c) : k==="profit" ? (c.market||0)-(c.cost||0) : c[k];
+const invVal = (c, k) => k==="cond" ? (isGraded(c) ? 8 : c.kind==="Sealed"||c.kind==="Other" ? 9 : COND_RANK[c.cond] ?? 5) : k==="min" ? floorOf(c.cost) : k==="sell" ? suggestedOf(c) : k==="profit" ? (c.market||0)-(c.cost||0) : k==="grade" ? (parseFloat(c.grade)||0) : c[k];
 // where a card's price comes from
 function priceSrc(c){
   if(cpFresh(c)) return "jt";
@@ -1223,7 +1237,7 @@ $("#inv-cond").addEventListener("change", () => { if($("#inv-cond").value && ui.
 let INV_SHOWN = [];
 $("#inv-table").onclick = e => {
   const th = e.target.closest("[data-s]");
-  if(th){ const s = th.dataset.s; if(ui.invSort===s) ui.invDir *= -1; else { ui.invSort = s; ui.invDir = (s==="name"||s==="cond") ? 1 : -1; } renderInventory(); return; }
+  if(th){ const s = th.dataset.s; if(ui.invSort===s) ui.invDir *= -1; else { ui.invSort = s; ui.invDir = (s==="name"||s==="cond") ? 1 : -1; } lsSet("cd-isort", { k:ui.invSort, d:ui.invDir }); renderInventory(); return; }
   if(e.target.closest("[data-stop]")) return;
   const tr = e.target.closest("[data-id]"); if(tr) cardModal(S.cards.find(c => c.id===tr.dataset.id));
 };
@@ -1231,6 +1245,8 @@ $("#inv-add").onclick = () => cardModal(null);
 $("#inv-kind").onclick = e => { const b=e.target.closest("[data-k]"); if(!b) return; ui.invKind=b.dataset.k; $("#inv-kind").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderInventory(); };
 
 // ---------- GRADED ----------
+document.addEventListener("click", e => { const th = e.target.closest("#gr-table [data-gs]"); if(!th) return; const s = th.dataset.gs;
+  if(ui.grSort===s) ui.grDir *= -1; else { ui.grSort = s; ui.grDir = s==="name" ? 1 : -1; } lsSet("cd-gsort", { k:ui.grSort, d:ui.grDir }); renderGraded(); });
 function renderGraded(){
   const all = S.cards.filter(isGraded), inStock = all.filter(c => (c.qty||0) > 0);
   let units=0, cost=0, val=0; inStock.forEach(c => { units+=c.qty; cost+=c.cost*c.qty; val+=(c.market||0)*c.qty; });
@@ -1243,9 +1259,10 @@ function renderGraded(){
     <div class="stat">${svgIcon("slab","bg")}<div class="k">Top slab</div><div class="v" style="font-size:17px;line-height:1.3;margin-top:6px">${top?esc(top.name)+" · "+esc(gradeLabel(top)):"—"}</div></div>`;
   const q = $("#gr-search").value.trim().toLowerCase(), showSold = $("#gr-sold").checked;
   const list = all.filter(c => (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)))
-    .sort((a,b) => (b.addedAt||0)-(a.addedAt||0));
+    .sort((a,b) => { const k = ui.grSort, x = invVal(a,k), y = invVal(b,k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * ui.grDir; });
   $("#gr-count").textContent = `${list.length} slab${list.length===1?"":"s"}`;
-  const head = `<thead><tr><th></th><th>Card</th><th>Slab</th><th>Cert</th><th class="n">Qty</th><th class="n">Paid</th><th class="n">Your value</th><th class="n">Sell for</th><th class="n">Profit</th><th class="n">Added</th><th></th></tr></thead>`;
+  const GH = [["",null],["Card","name"],["Slab","grade"],["Cert",null],["Qty","qty"],["Paid","cost"],["Your value","market"],["Sell for","sell"],["Profit","profit"],["Added","addedAt"],["",null]];
+  const head = `<thead><tr>${GH.map(([l,key],i) => `<th class="${key?"sort":""} ${key===ui.grSort?"sorted":""} ${i>=4&&i<=9?"n":""}" ${key?`data-gs="${key}"`:""}>${l}${key===ui.grSort?(ui.grDir>0?" ▲":" ▼"):""}</th>`).join("")}</tr></thead>`;
   if(!list.length){ $("#gr-table").innerHTML = head + (all.length ? empty("search","No slabs match","Try the name, grader, grade or cert number.",11) : empty("fan","No graded cards yet","Add a slab here, or buy one on the Buy tab with Type set to Graded.",11)); return; }
   $("#gr-table").innerHTML = head + "<tbody>" + list.map(c => {
     const sug = suggestedOf(c), prof = (c.market||0) - c.cost;
@@ -1315,7 +1332,7 @@ function cardModal(c, defaults={}){
         const el = m.querySelector("#cm-link");
         if(f.custom.checked){ el.innerHTML = ""; return; }
         el.innerHTML = link
-          ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price — nightly updates off":f.sealedPromo.checked?`sealed promo at ${premOf({sealedPromo:true,premium:f.premium.value})}% of raw NM · updates nightly`:link.productId===c.productId&&cpFresh({...c, cond:f.cond.value, sealedPromo:false})?`${esc(f.cond.value)} price ${money(c.cp)} from JustTCG, checked ${ago(c.cpAt)} · check again from Inventory`:"price updates nightly"}</span><span class="spacer"></span>
+          ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price · moves with TCGplayer by the same %":f.sealedPromo.checked?`sealed promo at ${premOf({sealedPromo:true,premium:f.premium.value})}% of raw NM · updates nightly`:link.productId===c.productId&&cpFresh({...c, cond:f.cond.value, sealedPromo:false})?`${esc(f.cond.value)} price ${money(c.cp)} from JustTCG, checked ${ago(c.cpAt)} · check again from Inventory`:"price updates nightly"}</span><span class="spacer"></span>
               ${lock&&!g()?`<button type="button" class="btn sm" id="cm-unlock">Use market price</button>`:""}<button type="button" class="btn sm" id="cm-relink">Change</button><button type="button" class="btn sm" id="cm-unlink">Unlink</button></div>`
           : `<div class="row" style="margin-bottom:10px"><span class="muted small">Type the card name to search the catalog — link it to get a picture and nightly prices.</span></div>`;
         const u=el.querySelector("#cm-unlock"); if(u) u.onclick = () => { lock=false; recalc(); drawLink(); };
@@ -1391,7 +1408,7 @@ function cardModal(c, defaults={}){
         const sp = !g() && f.sealedPromo.checked, premium = sp ? Math.max(1, Math.round(Number(f.premium.value)||100)) : null;
         const data = { sealedPromo:sp, premium, name:nm, set:f.set.value.trim(), cond:g()?"":f.cond.value, kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, cost:r2(f.cost.value), market:newMarket, qty:Math.max(0,parseInt(f.qty.value)||0),
           ...(g() ? { grader:f.grader.value, grade:f.grade.value.trim(), cert:f.cert.value.trim() } : (c.grader ? { grader:null, grade:null, cert:null } : {})) };
-        if(link) Object.assign(data, { productId:link.productId, sub:link.sub, game:link.game, nm:r2(link.nm), lock: g() ? true : lock });
+        if(link) Object.assign(data, { productId:link.productId, sub:link.sub, game:link.game, nm:r2(link.nm), lock: g() ? true : lock, lockNm: !g() && lock && link.nm ? r2(link.nm) : null });
         else if(!isNew && c.productId) Object.assign(data, { productId:null, sub:null, game:null, nm:null, lock:false });
         if(isNew || newMarket !== c.market) data.marketAt = Date.now();
         data.reviewedAt = Date.now();   // clears the Saturday "needs update" mark
@@ -1520,7 +1537,7 @@ function manualItemModal(onAdd){
 const purchaseItem = (it, pct) => ({ name:it.name, set:it.set, cond:it.cond||"", market:it.market, qty:it.qty, each:payEach(it, pct), kind:it.kind||"Card", custom:!!it.custom, vintage:!!it.vintage, ...gradedFields(it),
   ...(it.productId ? { productId:it.productId, sub:it.sub||"", game:it.game||"", nm:r2(it.nm), lock:!!it.lock || isGraded(it) } : {}) });
 const cardFromItem = (it, now, purchaseId) => ({ name:it.name, set:it.set, cond:it.cond, kind:it.kind, custom:it.custom, vintage:it.vintage, qty:it.qty, cost:it.each, market:it.market, marketAt:now, addedAt:now, purchaseId, ...gradedFields(it),
-  ...(it.productId ? { productId:it.productId, sub:it.sub, game:it.game, nm:it.nm, lock:it.lock } : {}) });
+  ...(it.productId ? { productId:it.productId, sub:it.sub, game:it.game, nm:it.nm, lock:it.lock, ...(it.lock && !isGraded(it) && it.nm ? { lockNm:it.nm } : {}) } : {}) });
 
 // ---------- BUY ----------
 const buy = { items:[], pct:80 };
@@ -1728,6 +1745,21 @@ $("#exp-form").onsubmit = async e => {
   const ok = await safe(() => db.collection("expenses").doc().set({ at:new Date(d+"T12:00:00").getTime(), date:d, desc:$("#e-desc").value.trim(), cat:$("#e-cat").value, amount:r2($("#e-amt").value) }), "Expense added");
   if(ok){ $("#e-desc").value=""; $("#e-amt").value=""; }
 };
+// itemized expenses for the period picked at the top of Money
+function renderExpenses(){
+  const [f,t] = periodRange(ui.period), list = S.expenses.filter(x => x.at>=f && x.at<t).sort((a,b)=>b.at-a.at);
+  const tot = list.reduce((s,x)=>s+(Number(x.amount)||0),0);
+  const label = { month:"This month", last:"Last month", year:"This year", all:"All time" }[ui.period];
+  $("#m-exp-sum").innerHTML = `${label} · <b style="color:var(--ink)">${money(tot)}</b>${list.length?` · ${list.length} item${list.length===1?"":"s"}`:""}`;
+  const cats = {}; list.forEach(x => cats[x.cat||"Other"] = (cats[x.cat||"Other"]||0) + (Number(x.amount)||0));
+  $("#m-exp-cats").innerHTML = Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v]) => `<span class="chip">${esc(k)} <b>${money(v)}</b></span>`).join("");
+  $("#m-exp-list").innerHTML = list.length ? `<thead><tr><th>Date</th><th>What for</th><th>Category</th><th class="n">Amount</th><th></th></tr></thead><tbody>${list.map(x => `<tr><td class="small muted" style="white-space:nowrap">${dayStr(x.at)}</td><td>${esc(x.desc||"—")}</td><td><span class="chip">${esc(x.cat||"Other")}</span></td><td class="n"><b>${money(x.amount)}</b></td><td class="n"><button class="btn sm danger" data-del-exp="${x.id}">Delete</button></td></tr>`).join("")}</tbody>`
+    : emptyT("receipt", "No expenses "+label.toLowerCase(), "Table fees, sleeves, shipping and the like show up here once you add them.");
+}
+$("#m-exp-list").onclick = async e => { const de = e.target.closest("[data-del-exp]"); if(!de || !needDb()) return;
+  const x = S.expenses.find(y => y.id===de.dataset.delExp); if(!x) return;
+  if(!(await ask("Delete expense?", `${money(x.amount)} · ${esc(x.desc)}`, "Delete", true))) return;
+  await safe(() => db.collection("expenses").doc(x.id).delete(), "Expense deleted"); };
 $("#m-period").onclick = e => { const b=e.target.closest("[data-p]"); if(!b) return; ui.period=b.dataset.p; $("#m-period").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderMoney(); };
 $("#m-act").onclick = e => { const b=e.target.closest("[data-a]"); if(!b) return; ui.act=b.dataset.a; $("#m-act").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b)); renderActivity(); };
 $("#set-save").onclick = async () => { if(!needDb()) return; const v=Math.max(0,Number($("#set-min").value)||0); await safe(() => db.doc("settings/main").set({ ...S.settings, minProfit:v }), "Minimum profit set to "+v+"%"); };
@@ -1806,6 +1838,7 @@ function renderMoney(){
   }
   $("#m-months").innerHTML = `<table class="tbl"><thead><tr><th>Month</th><th class="n">Sales</th><th class="n">Card profit</th><th class="n">Expenses</th><th class="n">Net</th><th class="n">Bought</th><th class="n">Cash in − out</th></tr></thead><tbody>${rows.join("")}</tbody></table>`;
   renderActivity();
+  renderExpenses();
 }
 const names = items => esc((items||[]).map(i=>i.name+(i.qty>1?" ×"+i.qty:"")).join(", "));
 function renderActivity(){
@@ -1960,7 +1993,7 @@ function renderOverview(){
 // the purchase day; cards added by hand count as already owned. Sold units count until the day they sold.
 const HIST = { idx:null, err:null, v:null, b:{}, data:{} };
 const HIST_START = "2026-06-04";
-const histable = c => c.productId && !c.custom && !c.lock && !isGraded(c);
+const histable = c => c.productId && !c.custom && !isGraded(c);
 const ui2 = { vk: lsGet("cd-vk") || "all", vr: lsGet("cd-vr") || "90" };
 function ensureHistory(){
   if(!CAT.manifest) return;
@@ -2116,7 +2149,7 @@ const refreshed = new Set(); let refreshing = false;
 async function refreshInventoryPrices(){
   if(refreshing || !db || !CAT.manifest || !S.loaded.cards) return;
   const built = CAT.manifest.builtAt;
-  const due = S.cards.filter(c => c.productId && !c.lock && !c.custom && !isGraded(c) && (c.qty||0)>0 && (c.marketAt||0) < built && !refreshed.has(c.id+":"+built));
+  const due = S.cards.filter(c => c.productId && !c.custom && !isGraded(c) && (c.qty||0)>0 && (c.marketAt||0) < built && !refreshed.has(c.id+":"+built));
   if(!due.length) return;
   refreshing = true;
   try {
@@ -2128,7 +2161,15 @@ async function refreshInventoryPrices(){
       refreshed.add(c.id+":"+built);
       const pr = (buckets[c.productId % nb] || {})[c.productId]; if(!pr) continue;
       const nm = pr[c.sub] ?? Object.values(pr)[0]; if(nm == null) continue;
-      if(cpFresh(c)){ if(r2(nm) !== r2(c.nm)) ups.push([c.id, { nm:r2(nm) }]); }   // JustTCG price stays; its age keeps counting for the Saturday check
+      if(c.lock){
+        // your own price: keep your premium/discount and move it by the same % as TCGplayer (lockNm = NM when you set it)
+        const base = Number(c.lockNm) > 0 ? Number(c.lockNm) : Number(c.nm) > 0 ? Number(c.nm) : null;
+        ups.push([c.id, { nm:r2(nm), lockNm:r2(nm), market: base ? r2(Number(c.market) * nm / base) : r2(c.market), marketAt:built }]);
+      } else if(cpFresh(c)){
+        // JustTCG price follows TCGplayer's % move; its own age keeps counting for the Saturday check
+        const cpNm = Number(c.cpNm) > 0 ? Number(c.cpNm) : (Number(c.nm) > 0 ? Number(c.nm) : null);
+        if(r2(nm) !== r2(c.nm) || c.cpNm == null) ups.push([c.id, { nm:r2(nm), cpNm, market:cardPrice({ ...c, cpNm }, nm) }]);
+      }
       else ups.push([c.id, { nm:r2(nm), market:cardPrice(c, nm), marketAt:built }]);
     }
     const moved = ups.filter(([id,d]) => { const c = S.cards.find(x => x.id===id); return c && d.market != null && r2(d.market) !== r2(c.market); }).length;
@@ -2211,7 +2252,8 @@ async function jtRun(cards, { replaceOwn=false } = {}){
           const v = card && jtPick(card, c);
           if(!v){ missing++; continue; }
           const next = { ...c, cp:r2(v.price), cpAt:now, cpCond:priceCond(c) };
-          try { await db.collection("cards").doc(c.id).update({ cp:next.cp, cpAt:now, cpCond:next.cpCond, market:cardPrice(next, c.nm), marketAt:now, lock:false }); updated++; }
+          next.cpNm = Number(c.nm) || null;
+          try { await db.collection("cards").doc(c.id).update({ cp:next.cp, cpAt:now, cpCond:next.cpCond, cpNm:next.cpNm, market:cardPrice(next, c.nm), marketAt:now, lock:false }); updated++; }
           catch(e){ console.warn("jt update", c.id, e); }
         }
       }
