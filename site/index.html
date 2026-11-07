@@ -710,6 +710,7 @@
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="user"></span>Account &amp; backup</h2></div>
           <div class="muted" id="acct" style="margin-bottom:10px"></div>
           <div class="row"><button class="btn" id="bk-down">Download backup</button><label class="btn" style="margin:0;color:var(--ink);font-size:14px">Restore from backup<input type="file" id="bk-up" accept=".json,application/json" style="display:none"></label><span class="spacer"></span><button class="btn danger" id="sign-out">Sign out</button></div>
+          <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted small" style="flex:1">Fresh start for costs: every card you hold now counts as bought for $0. Cards, sales and purchase history stay. A backup downloads first.</span><button class="btn" id="zero-cost">Set paid to $0…</button></div>
           <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted small" style="flex:1">Start over: permanently deletes every card, purchase, sale, trade, expense and setting.</span><button class="btn danger" id="erase">Erase all data…</button></div>
         </div>
       </div>
@@ -2428,6 +2429,19 @@ $("#bk-up").onchange = async e => {
   } catch(err){ console.error(err); toast("Restore failed — try again"); }
 };
 // erase everything (start over)
+$("#zero-cost").onclick = async () => {
+  if(!needDb()) return;
+  const list = S.cards.filter(c => (c.qty||0) > 0 && Number(c.cost||0) !== 0);
+  if(!list.length){ toast("Every card in stock is already at $0 paid"); return; }
+  const paid = list.reduce((s,c) => s + (Number(c.cost)||0)*(c.qty||0), 0);
+  if(!(await ask("Set paid to $0?", `<b>${list.length}</b> card${list.length===1?"":"s"} in stock (${money(paid)} paid in total) will count as bought for $0, so their full value shows as profit from now on. Cards, sales and purchase history don't change. A backup file downloads first, so you can undo this with Restore from backup.`, "Set to $0", true))) return;
+  $("#bk-down").click();
+  await new Promise(r => setTimeout(r, 800));
+  try {
+    for(let i=0;i<list.length;i+=400){ const b = F.writeBatch(fs); list.slice(i,i+400).forEach(c => b.update(F.doc(fs,"cards",c.id), { cost:0 })); await settle(b.commit()); }
+    toast(`Paid set to $0 on ${list.length} card${list.length===1?"":"s"}`);
+  } catch(e){ console.warn(e); toast("Couldn't update every card — try again"); }
+};
 $("#erase").onclick = () => {
   if(!needDb()) return;
   const n = COLS.reduce((s,c) => s + S[c].length, 0);
