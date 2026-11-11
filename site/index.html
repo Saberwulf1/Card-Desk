@@ -164,6 +164,7 @@
   .cg{display:inline-block;min-width:38px;text-align:center;font-size:11.5px;font-weight:700;padding:2px 7px;border-radius:6px;color:#fff;background:var(--muted)}
   .cg.NM{background:var(--c-nm)}.cg.LP{background:var(--c-lp)}.cg.MP{background:var(--c-mp)}.cg.HP{background:var(--c-hp)}.cg.DMG{background:var(--c-dmg)}
   .pcts{display:flex;gap:5px;flex-wrap:wrap}
+  .pct.tot{min-width:auto;padding:6px 11px}
   .pct{min-width:50px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--paper);font:700 14px/1 var(--display);cursor:pointer;font-variant-numeric:tabular-nums;transition:all .12s}
   .pct:hover{border-color:var(--accent);color:var(--accent)}
   .pct.on{border-color:var(--navy);background:var(--navy);color:#fff;box-shadow:0 2px 6px -2px rgba(26,35,64,.6)}
@@ -315,6 +316,7 @@
   .cm-sr .cm-res{max-height:280px;overflow:auto}
   .cm-sr .cres{padding:9px 14px} .cm-sr .empty{padding:14px}
   .sealed-only{display:none} form.is-sealed .sealed-only{display:block} form.is-graded .sealed-only{display:none}
+  .chip.lang{background:rgba(255,92,92,.14);color:#FF8A80;border-color:transparent;font-weight:700}
   .paybtns{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
   .paybtns button{border:1px solid var(--line-2);background:var(--sunk);color:var(--muted);font-weight:600;font-size:12.5px;padding:4px 10px;border-radius:7px;cursor:pointer}
   .paybtns button:hover{color:var(--ink)}
@@ -550,6 +552,7 @@
         <div class="seg" id="inv-kind"><button data-k="all" class="on">All</button><button data-k="raw">Raw cards</button><button data-k="other">Sealed &amp; other</button></div>
         <select id="inv-cond" title="Condition" style="width:auto"><option value="">Any condition</option><option value="played">Not near mint</option><option>NM</option><option>LP</option><option>MP</option><option>HP</option><option>DMG</option></select>
         <select id="inv-src" title="Where the price comes from" style="width:auto"><option value="">Any price source</option><optgroup label="Price from"><option value="tcg">TCGplayer (nightly)</option><option value="jt">JustTCG condition price</option><option value="own">Your own price (typed in)</option></optgroup><optgroup label="Other"><option value="hand">Added by hand</option><option value="upd">Needs update</option></optgroup></select>
+        <select id="inv-lang" title="Language" style="width:auto" hidden><option value="">Any language</option></select>
         <label class="chk"><input type="checkbox" id="inv-sold"> Show sold</label>
         <button class="btn" id="inv-jt" hidden title="Look up the TCGplayer price for each shown card's condition on JustTCG"></button>
         <span class="muted small" id="inv-count"></span>
@@ -711,6 +714,7 @@
           <div class="muted" id="acct" style="margin-bottom:10px"></div>
           <div class="row"><button class="btn" id="bk-down">Download backup</button><label class="btn" style="margin:0;color:var(--ink);font-size:14px">Restore from backup<input type="file" id="bk-up" accept=".json,application/json" style="display:none"></label><span class="spacer"></span><button class="btn danger" id="sign-out">Sign out</button></div>
           <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted small" style="flex:1">Fresh start for costs: every card you hold now counts as bought for $0. Cards, sales and purchase history stay. A backup downloads first.</span><button class="btn" id="zero-cost">Set paid to $0…</button></div>
+          <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted small" style="flex:1">Redo your inventory: deletes every card (in stock and sold), and optionally your purchase, sale and trade history. Settings, expenses and your JustTCG key stay. A backup downloads first.</span><button class="btn danger" id="clear-inv">Clear inventory…</button></div>
           <div class="row" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)"><span class="muted small" style="flex:1">Start over: permanently deletes every card, purchase, sale, trade, expense and setting.</span><button class="btn danger" id="erase">Erase all data…</button></div>
         </div>
       </div>
@@ -844,9 +848,49 @@ async function safe(fn, okMsg){
   try { await fn(); if(okMsg) toast(okMsg); return true; }
   catch(e){ console.error(e); toast(e && e.code==="permission-denied" ? "This account isn't allowed to save — check you're signed in as yourself" : "Couldn't save — try again"); return false; }
 }
-function pctButtons(el, list, cur, onPick){
-  el.innerHTML = list.map(p => `<button class="pct ${p===cur?"on":""}" data-p="${p}">${p}%</button>`).join("");
-  el.onclick = e => { const b=e.target.closest("[data-p]"); if(b) onPick(Number(b.dataset.p)); };
+// % buttons, plus "Total $…" to type one amount for the whole deal (cust = { lines, base, set, clear, rerender, title })
+function pctButtons(el, list, cur, onPick, cust){
+  const typed = cust ? cust.lines().filter(l => l.price != null).length : 0;
+  el.innerHTML = list.map(p => `<button class="pct ${p===cur&&!(cust&&typed&&typed===cust.lines().length)?"on":""}" data-p="${p}">${p}%</button>`).join("")
+    + (cust ? `<button class="pct tot ${typed&&typed===cust.lines().length?"on":""}" data-tot title="Type one amount for everything in the list; it's split across the cards by market value">Total $…</button>` : "");
+  el.onclick = e => {
+    if(e.target.closest("[data-tot]")){ totalModal(cust); return; }
+    const b=e.target.closest("[data-p]"); if(!b) return;
+    // picking a % after a custom total goes back to % pricing for every card
+    if(cust && typed && typed===cust.lines().length){ cust.lines().forEach(cust.clear); }
+    onPick(Number(b.dataset.p));
+  };
+}
+// split total T across lines (each with qty) in proportion to base value; returns each-price per line, in cents
+function splitTotal(lines, T, base){
+  const units = lines.map(l => Math.max(1, l.qty||1)), b = lines.map(base).map(v => Math.max(0, Number(v)||0));
+  let M = b.reduce((s,v,i) => s + v*units[i], 0);
+  const w = M > 0 ? b : b.map(() => 1); if(!(M > 0)) M = units.reduce((s,u)=>s+u,0);
+  const cents = Math.round(T*100);
+  const each = w.map(v => Math.floor(cents * v / M));         // cents per unit
+  let left = cents - each.reduce((s,v,i) => s + v*units[i], 0);
+  // hand leftover cents out, biggest lines first; a line with qty q takes them q at a time
+  const order = lines.map((_,i)=>i).sort((x,y) => w[y]-w[x]);
+  for(const i of order){ if(left <= 0) break; const k = Math.floor(left / units[i]); if(k > 0){ each[i] += k; left -= k*units[i]; } }
+  return each.map(v => v/100);
+}
+function totalModal(cust){
+  const lines = cust.lines(); if(!lines.length){ toast("Add cards first"); return; }
+  const cur = r2(lines.reduce((s,l) => s + cust.price(l)*(l.qty||1), 0));
+  const mkt = r2(lines.reduce((s,l) => s + (Number(cust.base(l))||0)*(l.qty||1), 0));
+  const typed = lines.filter(l => l.price != null).length;
+  openModal(`<h3>${esc(cust.title)}</h3><p class="muted">Type one amount for all ${lines.reduce((s,l)=>s+(l.qty||1),0)} card${lines.length===1&&(lines[0].qty||1)===1?"":"s"} (market ${money(mkt)}). It's split across the cards by market value, so each card's price adds up to exactly this total.</p>
+    <form id="tf"><label>Total $</label><input id="tf-v" type="number" step="0.01" min="0" value="${cur||""}" required>
+    <div class="muted small" id="tf-pct" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:14px">${typed?`<button type="button" class="btn" id="tf-reset">Back to % pricing</button>`:""}<span class="spacer"></span><button type="button" class="btn" id="tf-x">Cancel</button><button class="btn primary">Set total</button></div></form>`, m => {
+      const inp = m.querySelector("#tf-v"), pc = m.querySelector("#tf-pct");
+      const show = () => { const v = Number(inp.value)||0; pc.textContent = mkt ? `That's ${Math.round(v/mkt*100)}% of market.` : ""; };
+      inp.oninput = show; show(); inp.focus(); inp.select();
+      m.querySelector("#tf-x").onclick = closeModal;
+      const r = m.querySelector("#tf-reset"); if(r) r.onclick = () => { closeModal(); lines.forEach(cust.clear); cust.rerender(); };
+      m.querySelector("#tf").onsubmit = e => { e.preventDefault(); const T = Math.max(0, r2(inp.value)); closeModal();
+        splitTotal(lines, T, cust.base).forEach((each, i) => cust.set(lines[i], each)); cust.rerender(); toast(`Total set to ${money(T)}`); };
+    });
 }
 function qtyCell(i, q, attr="q"){ return `<span class="qty"><button data-${attr}="-1" data-i="${i}">−</button><b>${q}</b><button data-${attr}="1" data-i="${i}">+</button></span>`; }
 
@@ -893,7 +937,15 @@ function condPct(cond, vintage, kind){
   const p = Number(condTable(vintage)[cond]); return isFinite(p) ? p : 100;
 }
 // sealed promos (still in their plastic wrapper), linked to the raw card: worth the raw near-mint price × your premium %
-const premOf = c => c && c.sealedPromo && Number(c.premium) > 0 ? Number(c.premium) : 100;
+// card language: "English" unless set (cards picked from Pokémon Japan default to Japanese)
+const LANGS = ["English","Japanese","Chinese (Simplified)","Chinese (Traditional)","Korean","Other"];
+const LANG_SHORT = { "Japanese":"JP", "Chinese (Simplified)":"CN-S", "Chinese (Traditional)":"CN-T", "Korean":"KR", "Other":"Other" };
+const langOf = c => (c && c.lang) || (c && c.game==="pokemonjp" ? "Japanese" : "English");
+// linked to a catalog card in another language (e.g. a Chinese card linked to its English printing for the picture and price)
+const isForeign = c => !!(c && c.productId) && langOf(c) !== (c.game==="pokemonjp" ? "Japanese" : "English");
+const langChip = c => langOf(c)==="English" ? "" : `<span class="chip lang" title="${esc(langOf(c))}">${esc(LANG_SHORT[langOf(c)]||langOf(c))}</span>`;
+const langSelect = (cur, name="lang") => `<select name="${name}">${LANGS.map(l => `<option ${l===cur?"selected":""}>${l}</option>`).join("")}</select>`;
+const premOf = c => c && (c.sealedPromo || isForeign(c)) && Number(c.premium) > 0 ? Number(c.premium) : 100;
 // condition the card is priced at ("NM" for a sealed promo)
 const priceCond = c => c.sealedPromo ? "NM" : (c.cond || "NM");
 // a JustTCG price for the card's condition (checked by hand from Inventory); used while the condition still matches
@@ -1070,6 +1122,7 @@ function mountEntry(root, { title, addLabel, onAdd, onFocusSearch }){
       <div><label>Type</label><select name="kind">${KINDS.map(k=>`<option>${k}</option>`).join("")}</select></div>
       <div><label data-mlabel>Market $ (each)</label><input name="market" type="number" step="0.01" min="0" required></div>
       <div><label>Qty</label><input name="qty" type="number" min="1" value="1"></div>
+      <div><label>Language</label>${langSelect(lsGet("cd-lang") || "English")}</div>
     </div>
     <div class="grid g3 graded-only" style="margin-bottom:12px">
       <div><label>Graded by</label><select name="grader">${GRADERS.map(g=>`<option>${g}</option>`).join("")}</select></div>
@@ -1105,17 +1158,18 @@ function mountEntry(root, { title, addLabel, onAdd, onFocusSearch }){
     mlabel(); drawPick(); recalc();
   };
   f.vintage.onchange = recalc; f.kind.onchange = kindChanged;
+  f.lang.onchange = () => lsSet("cd-lang", f.lang.value);
   f.market.addEventListener("input", () => { if(pick && !typed){ typed = true; drawPick(); } calcLine(); });
   f.qty.addEventListener("input", calcLine);
   f.name.addEventListener("input", updLook); f.set.addEventListener("input", updLook);
   f.custom.onchange = () => { mlabel(); if(f.custom.checked){ pick=null; typed=false; drawPick(); } updLook(); };
   f.grade.addEventListener("input", drawPick); f.grader.addEventListener("change", drawPick);
-  const clear = () => { pick=null; typed=false; f.reset(); f.qty.value=1; f.classList.remove("is-graded"); setCond("NM"); mlabel(); drawPick(); calcLine(); };
+  const clear = () => { const keepLang = f.lang.value; pick=null; typed=false; f.reset(); f.lang.value = keepLang; f.qty.value=1; f.classList.remove("is-graded"); setCond("NM"); mlabel(); drawPick(); calcLine(); };
   root.querySelector("[data-clear]").onclick = () => { clear(); onFocusSearch && onFocusSearch(); };
   f.onsubmit = e => {
     e.preventDefault();
     const g = f.kind.value==="Graded";
-    const it = { key:uid(), name:f.name.value.trim(), set:f.set.value.trim(), cond:g?"":cond, market:r2(f.market.value), qty:Math.max(1,parseInt(f.qty.value)||1), kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, price:null,
+    const it = { key:uid(), name:f.name.value.trim(), set:f.set.value.trim(), cond:g?"":cond, market:r2(f.market.value), qty:Math.max(1,parseInt(f.qty.value)||1), kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, price:null, lang:f.lang.value,
       ...(g ? { grader:f.grader.value, grade:f.grade.value.trim(), cert:f.cert.value.trim() } : {}),
       ...(pick ? { productId:pick.productId, sub:pick.sub, game:pick.game, nm:r2(pick.nm), lock:typed||g } : {}) };
     onAdd(it); clear(); onFocusSearch && onFocusSearch();
@@ -1131,6 +1185,8 @@ function mountEntry(root, { title, addLabel, onAdd, onFocusSearch }){
       f.kind.value = wasGraded ? "Graded" : (!p.number && !p.rarity) ? "Sealed" : "Card";
       if(wasGraded){ typed = true; f.market.value = ""; }
       if(f.custom.checked){ f.custom.checked=false; }
+      if(p.game==="pokemonjp" && f.lang.value==="English") f.lang.value = "Japanese";
+      if(p.game!=="pokemonjp" && f.lang.value==="Japanese") f.lang.value = "English";
       mlabel();
       f.qty.value = 1;
       drawPick(); recalc();
@@ -1158,7 +1214,7 @@ function mountInvPicker(root, { onPick, inCart, dropdown }){
     const shown = list.slice(0, dropdown ? 40 : 80);
     tEl.innerHTML = shown.length ? `<thead><tr>${[["",null],["Card","name"],["Cond","cond"],["Left","qty"],["Paid","cost"],["Market","market"]].map(([l,k],i) => `<th class="${k?"sort":""} ${k===ps.k?"sorted":""} ${i>=3?"n":""}" ${k?`data-ps="${k}"`:""}>${l}${k===ps.k?(ps.d>0?" ▲":" ▼"):""}</th>`).join("")}</tr></thead><tbody>` + shown.map((c,i) => {
       const used = inCart(c.id), left = (c.qty||0) - used;
-      return `<tr class="tap" data-i="${i}" style="${left<=0?"opacity:.45":""}"><td class="thc">${thumb(c.productId)}</td><td><div class="nm">${esc(c.name)}</div><div class="sub">${esc(desc(c))}</div></td><td>${condCell(c)}</td><td class="n">${left}${used?` <span class="muted small">(+${used})</span>`:""}</td><td class="n">${money(c.cost)}</td><td class="n"><b>${money(c.market)}</b></td></tr>`;
+      return `<tr class="tap" data-i="${i}" style="${left<=0?"opacity:.45":""}"><td class="thc">${thumb(c.productId)}</td><td><div class="nm">${esc(c.name)} ${langChip(c)}</div><div class="sub">${esc(desc(c))}</div></td><td>${condCell(c)}</td><td class="n">${left}${used?` <span class="muted small">(+${used})</span>`:""}</td><td class="n">${money(c.cost)}</td><td class="n"><b>${money(c.market)}</b></td></tr>`;
     }).join("") + `</tbody>` : (S.cards.some(c=>c.qty>0) ? empty("search","Nothing matches","Try part of the name or the set.") : empty("fan","No cards in stock yet","Buy or add some cards first."));
   };
   qEl.addEventListener("input", () => { draw(); open(true); });
@@ -1225,7 +1281,13 @@ function renderInventory(){
   const condOk = c => !cf || (isGraded(c) || c.kind==="Sealed" || c.kind==="Other" ? false : cf==="played" ? priceCond(c)!=="NM" : priceCond(c)===cf);
   const sf = $("#inv-src").value;
   const srcOk = c => !sf || (sf==="hand" ? isHandAdded(c) : sf==="upd" ? needsUpdate(c) : priceSrc(c)===sf);
-  const list = S.cards.filter(c => kindOk(c) && condOk(c) && srcOk(c) && (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert].filter(Boolean).join(" ").toLowerCase().includes(q)));
+  // language list: only languages you hold, with counts
+  const lsel = $("#inv-lang"), lf = lsel.value, lcount = {};
+  S.cards.filter(c => showSold || (c.qty||0)>0).forEach(c => { const l = langOf(c); lcount[l] = (lcount[l]||0) + (c.qty||0); });
+  lsel.innerHTML = `<option value="">Any language</option>` + LANGS.filter(l => lcount[l] || l===lf).map(l => `<option value="${esc(l)}" ${l===lf?"selected":""}>${esc(l)} (${lcount[l]||0})</option>`).join("");
+  lsel.hidden = Object.keys(lcount).length < 2 && !lf;
+  const langOk = c => !lf || langOf(c)===lf;
+  const list = S.cards.filter(c => kindOk(c) && condOk(c) && srcOk(c) && langOk(c) && (showSold || (c.qty||0)>0) && (!q || [c.name,c.set,c.sub,c.grader,c.grade,c.cert,langOf(c)!=="English"?langOf(c):""].filter(Boolean).join(" ").toLowerCase().includes(q)));
   const k = ui.invSort, d = ui.invDir;
   list.sort((a,b) => { const x=invVal(a,k), y=invVal(b,k); return (typeof x==="string"||typeof y==="string" ? String(x||"").localeCompare(String(y||"")) : (Number(x)||0)-(Number(y)||0)) * d; });
   $("#inv-count").textContent = `${list.length} line${list.length===1?"":"s"}`;
@@ -1238,7 +1300,7 @@ function renderInventory(){
     const nu = needsUpdate(c);
     return `<tr class="tap ${nu?"needs":""}" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}" ${nu?`title="Needs updating: price unchanged for over a week. Open the card and save to clear."`:""}>
       <td class="thc">${thumb(c.productId)}</td>
-      <td class="cc"><div class="nm">${nu?`<span class="chip upd">update</span> `:""}${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""} ${c.custom?`<span class="chip warn">custom</span>`:""} ${c.sealedPromo?`<span class="chip acc" title="Still in its wrapper: raw NM price × ${premOf(c)}%">sealed promo ${premOf(c)}%</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
+      <td class="cc"><div class="nm">${nu?`<span class="chip upd">update</span> `:""}${esc(c.name)} ${langChip(c)} ${c.vintage?`<span class="chip vin">vintage</span>`:""} ${c.custom?`<span class="chip warn">custom</span>`:""} ${c.sealedPromo?`<span class="chip acc" title="Still in its wrapper: raw NM price × ${premOf(c)}%">sealed promo ${premOf(c)}%</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
       <td>${condCell(c)}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
       <td class="n">${money(c.cost)}</td>
@@ -1253,6 +1315,7 @@ function renderInventory(){
 $("#inv-search").addEventListener("input", renderInventory);
 $("#inv-sold").addEventListener("change", renderInventory);
 $("#inv-src").addEventListener("change", renderInventory);
+$("#inv-lang").addEventListener("change", renderInventory);
 $("#inv-review").onclick = e => { if(e.target.closest("#inv-review-show")){ $("#inv-src").value = "upd"; renderInventory(); } };
 $("#inv-cond").addEventListener("change", () => { if($("#inv-cond").value && ui.invSort!=="cond"){ ui.invSort="cond"; ui.invDir=1; } renderInventory(); });
 let INV_SHOWN = [];
@@ -1290,7 +1353,7 @@ function renderGraded(){
     const nu = needsUpdate(c);
     return `<tr class="tap ${nu?"needs":""}" data-id="${c.id}" style="${!(c.qty>0)?"opacity:.55":""}" ${nu?`title="Needs updating: value unchanged for over a week. Open the slab and save to clear."`:""}>
       <td class="thc">${thumb(c.productId)}</td>
-      <td class="cc"><div class="nm">${nu?`<span class="chip upd">update</span> `:""}${esc(c.name)} ${c.vintage?`<span class="chip vin">vintage</span>`:""}</div><div class="sub">${esc([c.set, c.sub].filter(Boolean).join(" · "))}</div></td>
+      <td class="cc"><div class="nm">${nu?`<span class="chip upd">update</span> `:""}${esc(c.name)} ${langChip(c)} ${c.vintage?`<span class="chip vin">vintage</span>`:""}</div><div class="sub">${esc([c.set, c.sub].filter(Boolean).join(" · "))}</div></td>
       <td><span class="slab">${esc(gradeLabel(c))}</span></td>
       <td class="muted">${esc(c.cert||"—")}</td>
       <td class="n">${c.qty>0?c.qty:`<span class="chip">sold</span>`}</td>
@@ -1316,14 +1379,15 @@ function cardModal(c, defaults={}){
       <div><div class="entry-img" id="cm-img" style="width:150px;height:209px"></div></div>
       <div>
         <div id="cm-link"></div>
-        <form class="grid g3 ${isGraded(c)?"is-graded":""} ${c.sealedPromo?"is-sealed":""}" id="cm" autocomplete="off">
+        <form class="grid g3 ${isGraded(c)?"is-graded":""} ${c.sealedPromo||isForeign(c)?"is-sealed":""}" id="cm" autocomplete="off">
           <div style="grid-column:1/3"><label>Card name</label><input name="name" required value="${esc(c.name)}" placeholder="Type to search the catalog, e.g. charizard base psa 10"></div>
           <div><label>Set / number</label><input name="set" value="${esc(c.set)}"></div>
           <div style="grid-column:1/-1" class="cm-sr" id="cm-sr" hidden><div class="dd-row"><select data-gsel title="Game"></select><span class="muted small" data-st style="flex:1;min-width:0"></span><button type="button" class="x" data-close title="Close">×</button></div><div class="cm-res" data-res></div></div>
           <div class="raw-only"><label>Condition</label><div class="seg cond cm-cond">${CONDS.map(x=>`<button type="button" data-c="${x}" class="${x===(c.cond||"NM")?"on":""}">${x}</button>`).join("")}</div><select name="cond" hidden>${CONDS.map(x=>`<option ${x===(c.cond||"NM")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Type</label><select name="kind">${KINDS.map(x=>`<option ${x===(c.kind||"Card")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Qty in stock</label><input name="qty" type="number" min="0" value="${c.qty??1}"></div>
-          <div class="sealed-only" title="Its value is the raw near-mint price times this %, and follows the daily price update"><label>Sealed promo value (% of raw)</label><input name="premium" type="number" min="1" step="1" value="${c.premium || lsGet("cd-premium") || 100}"></div>
+          <div><label>Language</label>${langSelect(isNew ? (c.lang || lsGet("cd-lang") || "English") : langOf(c))}</div>
+          <div class="sealed-only" title="Its value is the linked card's price times this %, and follows the daily price update"><label id="cm-plabel">${c.sealedPromo?"Sealed promo value (% of raw)":"Value (% of linked card)"}</label><input name="premium" type="number" min="1" step="1" value="${c.premium || lsGet("cd-premium") || 100}"></div>
           <div class="graded-only"><label>Graded by</label><select name="grader">${GRADERS.map(g=>`<option ${g===(c.grader||"PSA")?"selected":""}>${g}</option>`).join("")}</select></div>
           <div class="graded-only"><label>Grade</label><input name="grade" value="${esc(c.grade||"")}" placeholder="e.g. 10 or 9.5"></div>
           <div class="graded-only"><label>Cert #</label><input name="cert" value="${esc(c.cert||"")}" placeholder="optional"></div>
@@ -1348,12 +1412,14 @@ function cardModal(c, defaults={}){
         m.querySelector("#cm-img").innerHTML = link ? `<img src="${imgSmall(link.productId)}" data-peek="${link.productId}" data-zoom alt="" onerror="this.parentNode.textContent='No picture'">` : "No picture — link to the catalog to get one"; };
       const g = () => f.kind.value==="Graded";
       const ebay = () => { m.querySelector("#cm-ebay").href = ebayUrl({ name:f.name.value, set:f.set.value, grader:f.grader.value, grade:f.grade.value }); };
-      const recalc = () => { ebay(); if(g()) return; if(link && link.nm && !lock && !f.custom.checked){ f.market.value = cardPrice({ cond:f.cond.value, vintage:f.vintage.checked, kind:f.kind.value, sealedPromo:f.sealedPromo.checked, premium:f.premium.value, ...(link.productId===c.productId ? { cp:c.cp, cpAt:c.cpAt, cpCond:c.cpCond } : {}) }, link.nm).toFixed(2); calc(); syncPaid(); } };
+      const foreign = () => !!link && f.lang.value !== (link.game==="pokemonjp" ? "Japanese" : "English");
+      const drawPct = () => { f.classList.toggle("is-sealed", f.sealedPromo.checked || foreign()); m.querySelector("#cm-plabel").textContent = f.sealedPromo.checked ? "Sealed promo value (% of raw)" : `Value (% of the ${link&&link.game==="pokemonjp"?"Japanese":"English"} card)`; };
+      const recalc = () => { ebay(); if(g()) return; if(link && link.nm && !lock && !f.custom.checked){ f.market.value = cardPrice({ cond:f.cond.value, vintage:f.vintage.checked, kind:f.kind.value, sealedPromo:f.sealedPromo.checked, premium:f.premium.value, productId:link.productId, game:link.game, lang:f.lang.value, ...(link.productId===c.productId ? { cp:c.cp, cpAt:c.cpAt, cpCond:c.cpCond } : {}) }, link.nm).toFixed(2); calc(); syncPaid(); } };
       const drawLink = () => {
         const el = m.querySelector("#cm-link");
         if(f.custom.checked){ el.innerHTML = ""; return; }
         el.innerHTML = link
-          ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price — nightly updates off":f.sealedPromo.checked?`sealed promo at ${premOf({sealedPromo:true,premium:f.premium.value})}% of raw NM · updates nightly`:link.productId===c.productId&&cpFresh({...c, cond:f.cond.value, sealedPromo:false})?`${esc(f.cond.value)} price ${money(c.cp)} from JustTCG, checked ${ago(c.cpAt)} · check again from Inventory`:"price updates nightly"}</span><span class="spacer"></span>
+          ? `<div class="row" style="margin-bottom:10px"><span class="chip good">Linked to TCGplayer${link.sub?" · "+esc(link.sub):""}</span><span class="muted small">${g()?"raw ":""}NM ${money(link.nm)} · ${g()?"slab value is yours to set":lock?"your own price — nightly updates off":f.sealedPromo.checked?`sealed promo at ${premOf({sealedPromo:true,premium:f.premium.value})}% of raw NM · updates nightly`:foreign()?`${esc(f.lang.value)} card at ${Math.max(1,Math.round(Number(f.premium.value)||100))}% of this price · updates nightly`:link.productId===c.productId&&cpFresh({...c, cond:f.cond.value, sealedPromo:false})?`${esc(f.cond.value)} price ${money(c.cp)} from JustTCG, checked ${ago(c.cpAt)} · check again from Inventory`:"price updates nightly"}</span><span class="spacer"></span>
               ${lock&&!g()?`<button type="button" class="btn sm" id="cm-unlock">Use market price</button>`:""}<button type="button" class="btn sm" id="cm-relink">Change</button><button type="button" class="btn sm" id="cm-unlink">Unlink</button></div>`
           : `<div class="row" style="margin-bottom:10px"><span class="muted small">Type the card name to search the catalog — link it to get a picture and nightly prices.</span></div>`;
         const u=el.querySelector("#cm-unlock"); if(u) u.onclick = () => { lock=false; recalc(); drawLink(); };
@@ -1387,7 +1453,9 @@ function cardModal(c, defaults={}){
         link = { productId:p.productId, sub, game:p.game, nm:(p.prices||{})[sub] || 0 }; lock = false;
         f.name.value = p.name; f.set.value = setLabel(p); f.vintage.checked = isVintageYear(p.year);
         if(!g() && f.kind.value!=="Sealed") f.kind.value = (!p.number && !p.rarity) ? "Sealed" : "Card";
-        closeSr(); recalc(); calc(); drawLink(); look(); ebay();
+        if(p.game==="pokemonjp" && f.lang.value==="English") f.lang.value = "Japanese";
+        if(p.game!=="pokemonjp" && f.lang.value==="Japanese") f.lang.value = "English";
+        drawPct(); closeSr(); recalc(); calc(); drawLink(); look(); ebay();
         (g() ? (f.grade.value ? f.market : f.grade) : f.cost).focus();
       };
       gsel.onchange = () => { game = gsel.value; lsSet("cd-game", game); search(); f.name.focus(); };
@@ -1411,7 +1479,8 @@ function cardModal(c, defaults={}){
       ["cond","vintage"].forEach(n => f[n].addEventListener("change", recalc));
       m.querySelector(".cm-cond").onclick = e => { const b = e.target.closest("[data-c]"); if(!b) return; f.cond.value = b.dataset.c; m.querySelectorAll(".cm-cond button").forEach(x => x.classList.toggle("on", x===b)); f.cond.dispatchEvent(new Event("change")); };
       f.grade.addEventListener("input", ebay); f.grader.addEventListener("change", ebay);
-      f.sealedPromo.addEventListener("change", () => { f.classList.toggle("is-sealed", f.sealedPromo.checked); if(f.sealedPromo.checked && link) lock = false; recalc(); drawLink(); if(f.sealedPromo.checked) f.premium.focus(); });
+      f.lang.addEventListener("change", () => { lsSet("cd-lang", f.lang.value); if(foreign() && link) lock = false; drawPct(); recalc(); drawLink(); });
+      f.sealedPromo.addEventListener("change", () => { drawPct(); if(f.sealedPromo.checked && link) lock = false; recalc(); drawLink(); if(f.sealedPromo.checked) f.premium.focus(); });
       f.premium.addEventListener("input", () => { if(Number(f.premium.value) > 0) lsSet("cd-premium", Number(f.premium.value)); recalc(); drawLink(); });
       f.kind.addEventListener("change", () => { f.classList.toggle("is-graded", g()); m.querySelector("#cm-mlabel").textContent = g()||f.custom.checked ? "Your value $" : "Market price $"; if(g()){ lock = true; } else if(link){ lock = false; } recalc(); drawLink(); });
       calc(); look(); drawLink(); ebay();
@@ -1426,8 +1495,8 @@ function cardModal(c, defaults={}){
       f.onsubmit = async e => { e.preventDefault(); if(!needDb()) return;
         const newMarket = r2(f.market.value);
         const pg = g() && parseGrade(f.name.value), nm = (pg && pg.rest) || f.name.value.trim();
-        const sp = !g() && f.sealedPromo.checked, premium = sp ? Math.max(1, Math.round(Number(f.premium.value)||100)) : null;
-        const data = { sealedPromo:sp, premium, name:nm, set:f.set.value.trim(), cond:g()?"":f.cond.value, kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, cost:r2(f.cost.value), market:newMarket, qty:Math.max(0,parseInt(f.qty.value)||0),
+        const sp = !g() && f.sealedPromo.checked, premium = sp || foreign() ? Math.max(1, Math.round(Number(f.premium.value)||100)) : null;
+        const data = { sealedPromo:sp, premium, lang:f.lang.value, name:nm, set:f.set.value.trim(), cond:g()?"":f.cond.value, kind:f.kind.value, custom:f.custom.checked, vintage:f.vintage.checked, cost:r2(f.cost.value), market:newMarket, qty:Math.max(0,parseInt(f.qty.value)||0),
           ...(g() ? { grader:f.grader.value, grade:f.grade.value.trim(), cert:f.cert.value.trim() } : (c.grader ? { grader:null, grade:null, cert:null } : {})) };
         if(link) Object.assign(data, { productId:link.productId, sub:link.sub, game:link.game, nm:r2(link.nm), lock: g() ? true : lock });
         else if(!isNew && c.productId) Object.assign(data, { productId:null, sub:null, game:null, nm:null, lock:false });
@@ -1467,7 +1536,7 @@ function inLinesTable(items, pct, kind){
   return `<thead><tr><th></th><th>Card</th><th>Cond</th><th>Qty</th><th class="n">Market</th><th class="n">${kind==="trade"?"Credit":"You pay"} each</th><th class="n">Line</th><th></th></tr></thead><tbody>` +
     items.map((it,i) => { const each = payEach(it, pct);
       return `<tr><td class="thc">${thumb(it.productId)}</td>
-        <td class="cc"><div class="nm">${esc(it.name)} ${it.vintage?`<span class="chip vin">vintage</span>`:""} ${it.custom?`<span class="chip warn">custom</span>`:""}</div><div class="sub">${esc(desc(it))}</div></td>
+        <td class="cc"><div class="nm">${esc(it.name)} ${langChip(it)} ${it.vintage?`<span class="chip vin">vintage</span>`:""} ${it.custom?`<span class="chip warn">custom</span>`:""}</div><div class="sub">${esc(desc(it))}</div></td>
         <td>${condEdit(it, i)}</td><td>${qtyCell(i,it.qty)}</td>
         <td class="n"><button class="pbtn" data-mkt="${i}" title="Click to change the market value">${it.market?money(it.market):"set value"}</button>${isGraded(it)?`<span class="yours" style="color:var(--muted)">your value</span>`:it.lock&&it.productId?`<span class="yours">typed</span>`:""}</td>
         <td class="n"><button class="pbtn" data-pay="${i}" title="Click to type exactly what you'll pay">${money(each)}</button>${it.price!=null?`<span class="yours">typed</span>`:`<span class="muted small" style="display:block">${pct}%</span>`}</td>
@@ -1530,7 +1599,7 @@ function inListEvents(tableEl, getItems, getPct, onChange){
 function itemFromPick(p){
   const kind = (!p.number && !p.rarity) ? "Sealed" : "Card", vintage = isVintageYear(p.year);
   return { key:uid(), name:p.name, set:setLabel(p), cond: kind==="Card" ? "NM" : "", market: p.nm ? condPrice(p.nm, "NM", vintage, kind) : 0, qty:1, kind, custom:false, vintage, price:null,
-    productId:p.productId, sub:p.sub, game:p.game, nm:r2(p.nm), lock:false };
+    productId:p.productId, sub:p.sub, game:p.game, nm:r2(p.nm), lock:false, lang: p.game==="pokemonjp" ? "Japanese" : "English" };
 }
 function manualItemModal(onAdd){
   openModal(`<h3>Add a card by hand</h3><p class="muted">For anything not in the catalog, or a slab you'd rather type in.</p>
@@ -1544,20 +1613,21 @@ function manualItemModal(onAdd){
       <div class="graded-only"><label>Cert #</label><input name="cert" placeholder="optional"></div>
       <div><label data-ml>Market value $ (each)</label><input name="market" type="number" step="0.01" min="0" required></div>
       <div><label>Qty</label><input name="qty" type="number" min="1" value="1"></div>
+      <div><label>Language</label>${langSelect(lsGet("cd-lang") || "English")}</div>
       <div style="grid-column:1/-1" class="row"><span class="spacer"></span><button type="button" class="btn" id="mi-x">Cancel</button><button class="btn primary">Add</button></div>
     </form>`, m => {
       const f = m.querySelector("#mi"); f.name.focus();
       f.kind.onchange = () => { const g = f.kind.value==="Graded"; f.classList.toggle("is-graded", g); m.querySelector("[data-ml]").textContent = g ? "Your value $ (each)" : "Market value $ (each)"; };
       m.querySelector("#mi-x").onclick = closeModal;
       f.onsubmit = e => { e.preventDefault(); const g = f.kind.value==="Graded";
-        onAdd({ key:uid(), name:f.name.value.trim(), set:f.set.value.trim(), kind:f.kind.value, cond: f.kind.value==="Card" ? f.cond.value : "", market:r2(f.market.value), qty:Math.max(1,parseInt(f.qty.value)||1), custom:true, vintage:false, price:null,
+        onAdd({ key:uid(), name:f.name.value.trim(), set:f.set.value.trim(), kind:f.kind.value, cond: f.kind.value==="Card" ? f.cond.value : "", market:r2(f.market.value), qty:Math.max(1,parseInt(f.qty.value)||1), custom:true, vintage:false, price:null, lang:f.lang.value,
           ...(g ? { grader:f.grader.value, grade:f.grade.value.trim(), cert:f.cert.value.trim(), lock:true } : {}) });
         closeModal(); };
     });
 }
-const purchaseItem = (it, pct) => ({ name:it.name, set:it.set, cond:it.cond||"", market:it.market, qty:it.qty, each:payEach(it, pct), kind:it.kind||"Card", custom:!!it.custom, vintage:!!it.vintage, ...gradedFields(it),
+const purchaseItem = (it, pct) => ({ name:it.name, set:it.set, cond:it.cond||"", market:it.market, qty:it.qty, each:payEach(it, pct), kind:it.kind||"Card", custom:!!it.custom, vintage:!!it.vintage, lang:langOf(it), ...gradedFields(it),
   ...(it.productId ? { productId:it.productId, sub:it.sub||"", game:it.game||"", nm:r2(it.nm), lock:!!it.lock || isGraded(it) } : {}) });
-const cardFromItem = (it, now, purchaseId) => ({ name:it.name, set:it.set, cond:it.cond, kind:it.kind, custom:it.custom, vintage:it.vintage, qty:it.qty, cost:it.each, market:it.market, marketAt:now, addedAt:now, purchaseId, ...gradedFields(it),
+const cardFromItem = (it, now, purchaseId) => ({ name:it.name, set:it.set, cond:it.cond, kind:it.kind, custom:it.custom, vintage:it.vintage, lang:langOf(it), ...(isForeign(it) ? { premium:100 } : {}), qty:it.qty, cost:it.each, market:it.market, marketAt:now, addedAt:now, purchaseId, ...gradedFields(it),
   ...(it.productId ? { productId:it.productId, sub:it.sub, game:it.game, nm:it.nm, lock:it.lock } : {}) });
 
 // ---------- BUY ----------
@@ -1567,14 +1637,15 @@ const saveBuy = () => lsSet("cd-buy", { items:buy.items, pct:buy.pct });
 const buySearch = mountCatSearch($("#buy-search"), p => buyEntry.pick(p), { title:"Find a card" });
 const buyEntry = mountEntry($("#buy-entry"), { title:"Card details", addLabel:"Add to buy list", onAdd: it => { buy.items.push(it); saveBuy(); renderBuy(); }, onFocusSearch: () => buySearch.focus() });
 function renderBuy(){
-  pctButtons($("#buy-pcts"), BUY_PCTS, buy.pct, p => { buy.pct=p; saveBuy(); renderBuy(); });
+  pctButtons($("#buy-pcts"), BUY_PCTS, buy.pct, p => { buy.pct=p; saveBuy(); renderBuy(); },
+    { title:"Your offer for the whole list", lines:() => buy.items, base:it => it.market, price:it => payEach(it, buy.pct), set:(it,v) => { it.price = v; }, clear:it => { it.price = null; }, rerender:() => { saveBuy(); renderBuy(); } });
   $("#buy-table").innerHTML = inLinesTable(buy.items, buy.pct, "buy");
   let mkt=0, pay=0, units=0, typed=0;
   buy.items.forEach(it => { const each=payEach(it, buy.pct); mkt+=it.market*it.qty; pay+=each*it.qty; units+=it.qty; if(it.price!=null) typed++; });
   $("#buy-totals").innerHTML = `
     <div class="total"><span class="muted">${units} card${units===1?"":"s"} · market value</span><b>${money(mkt)}</b></div>
     <div class="total"><span>Your offer${typed?` <span class="muted small">(${buy.pct}%, ${typed} typed price${typed===1?"":"s"})</span>`:` at <b>${buy.pct}%</b>`}${mkt?` <span class="muted small">· ${Math.round(pay/mkt*100)}% of market overall</span>`:""}</span><span class="big">${money(pay)}</span></div>
-    <div class="muted small" style="margin:2px 0 8px">Click any “you pay” price to type your own. Click a market value to change it.</div>
+    <div class="muted small" style="margin:2px 0 8px">Click any “you pay” price to type your own, or <b>Total $…</b> to type one amount for the whole list. Click a market value to change it.</div>
     <div class="grid g2" style="margin:10px 0"><div><label>Seller (optional)</label><input id="buy-seller"></div><div><label>Paid with</label><select id="buy-method"><option>Cash</option><option>Card / digital</option><option>Other</option></select></div></div>
     <button class="btn go buy" id="buy-go" ${buy.items.length?"":"disabled"}>Complete purchase · ${money(pay)}</button>`;
   $("#buy-go").onclick = completePurchase;
@@ -1608,7 +1679,7 @@ function outLinesTable(lines, pct, empty, compact){
     const c = outLineCard(l), p = outPrice(l,c,pct), fl = floorOf(c.cost), low = p < fl;
     total += p*l.qty; cost += c.cost*l.qty; units += l.qty; if(low) below++;
     return `<tr><td class="thc">${thumb(c.productId)}</td>
-      <td class="cc"><div class="nm">${esc(c.name)} ${c.adhoc?`<span class="chip warn">not in inventory</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
+      <td class="cc"><div class="nm">${esc(c.name)} ${langChip(c)} ${c.adhoc?`<span class="chip warn">not in inventory</span>`:""}</div><div class="sub">${esc(desc(c))}</div></td>
       <td>${condCell(c)}</td><td>${qtyCell(i,l.qty)}</td>
       ${compact?"":`<td class="n muted">${money(c.cost)}</td>`}<td class="n">${c.adhoc?"—":money(c.market)}</td>
       <td class="n"><button class="pbtn ${low?"bad":""}" data-edit="${i}" title="Click to type your own price">${money(p)}</button>${l.price!=null?`<span class="yours">typed</span>`:""}<div class="small ${low?"bad":"muted"}">min ${money(fl)}</div></td>
@@ -1650,8 +1721,9 @@ $("#sell-adhoc").onclick = () => {
     });
 };
 function renderSell(){
-  pctButtons($("#sell-pcts"), SELL_PCTS, sell.pct, p => { sell.pct=p; renderSell(); });
-  $("#sell-note").textContent = `Red price = below your ${minP()}% minimum profit. Click a price to type your own.`;
+  pctButtons($("#sell-pcts"), SELL_PCTS, sell.pct, p => { sell.pct=p; renderSell(); },
+    { title:"Price for the whole sale", lines:() => sell.items, base:l => (outLineCard(l)||{}).market, price:l => outPrice(l, outLineCard(l)||{}, sell.pct), set:(l,v) => { l.price = v; }, clear:l => { l.price = null; }, rerender:renderSell });
+  $("#sell-note").textContent = `Red price = below your ${minP()}% minimum profit. Click a price to type your own, or Total $… for one amount for the whole sale.`;
   sell.items = sell.items.filter(l => l.adhoc || S.cards.some(c=>c.id===l.cardId));
   const t = outLinesTable(sell.items, sell.pct, "Click cards on the left to add them to this sale.");
   $("#sell-table").innerHTML = t.html;
@@ -1705,8 +1777,10 @@ function tradeNumbers(){
 }
 function renderTrade(){
   trade.outItems = trade.outItems.filter(l => S.cards.some(c=>c.id===l.cardId) || !S.loaded.cards);
-  pctButtons($("#tr-in-pcts"), TIN_PCTS, trade.inPct, p => { trade.inPct=p; trChanged(); });
-  pctButtons($("#tr-out-pcts"), TOUT_PCTS, trade.outPct, p => { trade.outPct=p; trChanged(); });
+  pctButtons($("#tr-in-pcts"), TIN_PCTS, trade.inPct, p => { trade.inPct=p; trChanged(); },
+    { title:"Trade value for their cards", lines:() => trade.inItems, base:it => it.market, price:it => payEach(it, trade.inPct), set:(it,v) => { it.price = v; }, clear:it => { it.price = null; }, rerender:trChanged });
+  pctButtons($("#tr-out-pcts"), TOUT_PCTS, trade.outPct, p => { trade.outPct=p; trChanged(); },
+    { title:"Trade value for your cards", lines:() => trade.outItems, base:l => (outLineCard(l)||{}).market, price:l => outPrice(l, outLineCard(l)||{}, trade.outPct), set:(l,v) => { l.price = v; }, clear:l => { l.price = null; }, rerender:trChanged });
   $("#tr-in-table").innerHTML = inLinesTable(trade.inItems, trade.inPct, "trade");
   const n = tradeNumbers();
   $("#tr-out-table").innerHTML = n.out.html;
@@ -2257,7 +2331,7 @@ function jtDrawStatus(extra){
   el.innerHTML = parts.join(" ");
 }
 // only raw linked cards in a condition other than near mint (NM prices come from the nightly TCGCSV data)
-const jtEligible = c => c.productId && !c.custom && !isGraded(c) && (c.kind||"Card")==="Card" && (c.qty||0) > 0 && priceCond(c) !== "NM" && !!JT_COND[priceCond(c)];
+const jtEligible = c => c.productId && !c.custom && !isForeign(c) && !isGraded(c) && (c.kind||"Card")==="Card" && (c.qty||0) > 0 && priceCond(c) !== "NM" && !!JT_COND[priceCond(c)];
 const jtLookups = cards => Math.ceil(new Set(cards.map(c => String(c.productId))).size / JT_BATCH);
 function drawJtButton(){
   const b = $("#inv-jt"); if(!b) return;
@@ -2441,6 +2515,33 @@ $("#zero-cost").onclick = async () => {
     for(let i=0;i<list.length;i+=400){ const b = F.writeBatch(fs); list.slice(i,i+400).forEach(c => b.update(F.doc(fs,"cards",c.id), { cost:0 })); await settle(b.commit()); }
     toast(`Paid set to $0 on ${list.length} card${list.length===1?"":"s"}`);
   } catch(e){ console.warn(e); toast("Couldn't update every card — try again"); }
+};
+// clear inventory (start the stock over; history optional)
+$("#clear-inv").onclick = () => {
+  if(!needDb()) return;
+  const nC = S.cards.length, nH = S.purchases.length + S.sales.length + S.trades.length;
+  if(!nC && !nH){ toast("Your inventory is already empty"); return; }
+  openModal(`<h3>Clear inventory?</h3><p class="muted">Deletes all <b>${nC}</b> card line${nC===1?"":"s"} (in stock and sold) so you can enter your inventory again from scratch. A backup file downloads first, so you can undo this with <b>Restore from backup</b>.</p>
+    ${nH?`<label class="chk" style="margin:4px 0 10px"><input type="checkbox" id="ci-hist"> Also clear purchase, sale and trade history (${nH} record${nH===1?"":"s"}) — your Money numbers start from zero</label>`:""}
+    <label>Type CLEAR to confirm</label><input id="ci-v" autocomplete="off" placeholder="CLEAR">
+    <div class="row" style="margin-top:14px"><span class="spacer"></span><button class="btn" id="ci-x">Cancel</button><button class="btn danger" id="ci-go" disabled>Clear inventory</button></div>`, m => {
+      const v = m.querySelector("#ci-v"), go = m.querySelector("#ci-go"); v.focus();
+      v.oninput = () => { go.disabled = v.value.trim().toUpperCase() !== "CLEAR"; };
+      m.querySelector("#ci-x").onclick = closeModal;
+      go.onclick = async () => {
+        const hist = !!(m.querySelector("#ci-hist")||{}).checked;
+        closeModal();
+        $("#bk-down").click();
+        await new Promise(r => setTimeout(r, 800));
+        try {
+          const refs = S.cards.map(c => F.doc(fs, "cards", c.id));
+          if(hist) for(const col of ["purchases","sales","trades"]) for(const r of S[col]) refs.push(F.doc(fs, col, r.id));
+          for(let i=0;i<refs.length;i+=400){ const b = F.writeBatch(fs); refs.slice(i,i+400).forEach(r => b.delete(r)); await settle(b.commit()); }
+          sell.items = []; trade.outItems = []; saveTrade();
+          renderAll(); toast(hist ? "Inventory and history cleared — start fresh" : "Inventory cleared — start fresh");
+        } catch(e){ console.error(e); toast("Clearing didn't finish — try again"); }
+      };
+    });
 };
 $("#erase").onclick = () => {
   if(!needDb()) return;
