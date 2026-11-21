@@ -2437,11 +2437,30 @@ const makeDb = () => ({
 });
 const gate = $("#gate"), gmsg = $("#gate-msg"), gbtn = $("#gate-btn"), gout = $("#gate-out");
 function showGate(msg, canSignIn, canSwitch){ gate.classList.add("on"); gmsg.innerHTML = msg; gbtn.style.display = canSignIn ? "" : "none"; gout.style.display = canSwitch ? "" : "none"; }
+// Google sign-in can't finish inside another app's built-in browser (Claude, Instagram, Messenger, Gmail…):
+// popups are blocked there and the redirect fallback loses its state. Spot those and point to Safari/Chrome instead.
+const UA = navigator.userAgent || "";
+const isIOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints > 1);
+const isStandalone = navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+const inAppBrowser = !isStandalone && (/FBAN|FBAV|FB_IAB|Instagram|Line\/|Snapchat|TikTok|musical_ly|Twitter|LinkedInApp|GSA\/|Claude/i.test(UA)
+  || (isIOS && /AppleWebKit/.test(UA) && !/Safari\//.test(UA)) || /; wv\)/.test(UA));
+const openElsewhere = `<b>Open Card Desk in ${isIOS?"Safari":"Chrome"} to sign in.</b> Google sign-in doesn't work inside another app's built-in browser. Tap the <b>${isIOS?"•••":"⋮"}</b> or share menu and choose <b>Open in ${isIOS?"Safari":"browser"}</b>, or copy the link below and paste it into ${isIOS?"Safari":"Chrome"}.
+  <div class="row" style="margin-top:12px;justify-content:center"><button class="btn" id="gate-copy">Copy link</button></div>`;
+function showOpenElsewhere(){
+  showGate(openElsewhere, false);
+  const b = $("#gate-copy"); if(b) b.onclick = async () => { const url = location.origin + location.pathname;
+    try { await navigator.clipboard.writeText(url); b.textContent = "Link copied"; } catch(e){ prompt("Copy this link:", url); } };
+}
 gbtn.onclick = async () => {
+  if(inAppBrowser){ showOpenElsewhere(); return; }
   const pr = new F.GoogleAuthProvider(); pr.setCustomParameters({ prompt:"select_account" });
   try { await F.signInWithPopup(auth, pr); }
   catch(e){
-    if(e && (e.code==="auth/popup-blocked" || e.code==="auth/operation-not-supported-in-this-environment")) return F.signInWithRedirect(auth, pr);
+    // the full-page redirect loses its state on iPhone/iPad (Safari keeps sign-in storage per site), so don't fall back to it there
+    if(e && (e.code==="auth/popup-blocked" || e.code==="auth/operation-not-supported-in-this-environment")){
+      if(isIOS) return showGate(isStandalone ? "Sign-in was blocked. Close Card Desk, open it again and tap Sign in with Google once more. If it still won't open, sign in once in Safari first." : "The Google sign-in window was blocked. If you opened this link from another app, open it in Safari instead (••• or share menu › Open in Safari). In Safari itself, turn off Settings › Safari › Block Pop-ups and try again.", true);
+      return F.signInWithRedirect(auth, pr);
+    }
     if(e && e.code==="auth/unauthorized-domain") return showGate("This web address isn't approved for sign-in yet. Add it under Firebase → Authentication → Settings → Authorized domains.", true);
     if(e && e.code!=="auth/popup-closed-by-user" && e.code!=="auth/cancelled-popup-request") showGate("Sign-in didn't work: "+esc(e.code||e.message)+". Try again.", true);
   }
@@ -2452,7 +2471,7 @@ $("#sign-out").onclick = async () => { if(await ask("Sign out?","You'll need to 
 F.getRedirectResult(auth).catch(e => console.warn(e));
 let started = false;
 F.onAuthStateChanged(auth, user => {
-  if(!user){ db = null; showGate("Sign in to open your inventory.", true); return; }
+  if(!user){ db = null; if(inAppBrowser) showOpenElsewhere(); else showGate("Sign in to open your inventory.", true); return; }
   const em = user.email || user.displayName || "you";
   $("#acct").textContent = "Signed in as " + em + "."; $("#who").textContent = em;
   gate.classList.remove("on");
