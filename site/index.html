@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Desk</title>
 <meta name="theme-color" content="#0A0F1D">
+<script>
+// Layout setting (Settings › Layout): "auto" follows screen width, "phone" or "computer" is fixed on this device
+(function(){
+  var pref = "auto"; try { pref = JSON.parse(localStorage.getItem("cd-layout")) || "auto"; } catch(e){}
+  var root = document.documentElement, vp = document.querySelector('meta[name=viewport]');
+  function apply(){
+    var small = matchMedia("(max-width:700px)").matches;
+    var phone = pref==="phone" || (pref==="auto" && small);
+    root.classList.toggle("m", phone);
+    root.classList.toggle("m-forced", pref==="phone" && !small);
+  }
+  // computer layout on a phone: lay the page out at laptop width (pinch to zoom)
+  if(pref==="computer" && vp && screen.width < 900) vp.setAttribute("content","width=1280");
+  apply(); matchMedia("(max-width:700px)").addEventListener("change", apply);
+  window.cdLayout = function(v){ try { localStorage.setItem("cd-layout", JSON.stringify(v)); } catch(e){} location.reload(); };
+  window.cdLayoutPref = pref;
+})();
+</script>
 <link rel="manifest" href="app.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -487,79 +505,80 @@
   .x:hover{background:var(--bad-bg)}
 
   [hidden]{display:none!important}
-  /* ---------- phones ---------- */
-  @media (max-width:700px){
-    html,body{overflow-x:hidden}
-    input,select,textarea{font-size:16px}            /* stops iPhone zooming in when you tap a box */
-    .top-in{height:52px;gap:8px;padding:0 12px;padding-top:env(safe-area-inset-top)}
-    .top{padding-top:0}
-    .brand span{display:none}
-    .top-right{gap:8px;min-width:0}
-    .top-right .pill{max-width:46vw;overflow:hidden;text-overflow:ellipsis}
-    /* tabs move to a bar along the bottom, like an app */
-    .nav{position:fixed;left:0;right:0;bottom:0;height:auto;z-index:30;justify-content:space-around;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));background:var(--navy);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -8px 24px -12px rgba(0,0,0,.6)}
-    .nav button{flex:1;flex-direction:column;gap:3px;padding:6px 0;border-radius:10px;font-size:10.5px;min-width:0}
-    .nav button span{display:block!important;font:600 10.5px/1 var(--body)}
-    .nav button svg{width:20px;height:20px}
-    .page{padding:12px 12px calc(84px + env(safe-area-inset-bottom))}
-    .toast{bottom:calc(78px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px)}
-    .ph{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:12px}
-    .ph h1{font-size:26px}
-    .ph p{font-size:13.5px}
-    .panel{padding:14px 14px}
-    .panel.flush .panel-h{padding:12px 14px 0}
-    .stats{grid-template-columns:1fr 1fr;gap:8px}
-    .stats .stat .v{font-size:20px}
-    /* filter bars: search full width, drop-downs two per row */
-    .panel.flush > .row{padding:10px 12px!important;gap:8px}
-    .panel.flush > .row .search{width:100%!important;flex:1 1 100%}
-    .panel.flush > .row select{flex:1 1 calc(50% - 8px);min-width:0}
-    .panel.flush > .row .seg{flex:1 1 100%}
-    .panel.flush > .row .seg button{flex:1}
-    .panel.flush > .row .spacer{display:none}
-    /* tables become stacked card rows */
-    .tbl-wrap{max-height:none!important;overflow:visible}
-    .tbl thead{display:none}
-    .tbl tbody tr{display:grid;grid-template-columns:46px repeat(auto-fill,minmax(82px,1fr));gap:6px 10px;padding:11px 12px;border-bottom:1px solid var(--line);align-items:center}
-    .tbl tbody tr td{border:0;padding:0;min-width:0}
-    .tbl tbody tr td.thc{grid-column:1;grid-row:1 / span 8;align-self:start;width:46px}
-    .tbl tbody tr td.cc{grid-column:2 / -1;min-width:0}
-    .tbl tbody tr td.cc .nm{font-size:15px}
-    .tbl tbody tr td.n{text-align:left}
-    .tbl tbody tr td[data-l]:not(.cc):not(.thc)::before{content:attr(data-l);display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}
-    .tbl tbody tr td:empty{display:none}
-    .tbl tbody tr td.empty{grid-column:1 / -1;grid-row:auto}
-    .tbl tbody tr:has(td.empty){display:block}
-    #inv-table td[data-l="Price age"], #inv-table td[data-l="Added"], #gr-table td[data-l="Added"]{display:none}
-    .tbl .x{width:34px;height:34px}
-    /* card window: a full-width sheet from the bottom */
-    .modal-bg{padding:0;align-items:flex-end}
-    .modal,.modal.wide{max-width:none;border-radius:18px 18px 0 0;max-height:94vh;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
-    .modal h3{font-size:20px;margin-bottom:10px}
-    .cm-wrap{grid-template-columns:84px minmax(0,1fr)!important;gap:12px!important}
-    .cm-wrap .cm-right{display:contents}
-    .cm-wrap #cm-img{width:84px!important;height:117px!important}
-    .cm-wrap #cm-link{grid-column:2;grid-row:1;align-self:start}
-    .cm-wrap #cm-link .row{flex-wrap:wrap;gap:6px}
-    .cm-wrap form{grid-column:1 / -1}
-    .grid.g3,.grid.g2{grid-template-columns:1fr 1fr!important}
-    .full-m,.grid > .full-m{grid-column:1 / -1}
-    .seg.cond{display:flex;width:100%}
-    .seg.cond button{flex:1;min-width:0;padding:8px 0}
-    /* buy entry */
-    .entry-row{grid-template-columns:1fr 1fr}
-    .entry-row > .raw-only{grid-column:1 / -1}
-    /* trade: one side above the other, totals not stuck over the list */
-    .trade-cols{grid-template-columns:1fr}
-    .side{min-height:0}
-    .tradebar{position:static;grid-template-columns:1fr 1fr;padding:14px}
-    .tradebar .bal{grid-column:1 / -1}
-    .tradebar > .grid{grid-column:1 / -1}
-    .pcts .pct{min-width:0;padding:8px 10px}
-    table.ctab{width:100%;table-layout:fixed}
-    table.ctab th:first-child{width:62px}
-    table.ctab input{width:100%;min-width:0;padding-left:6px;padding-right:4px}
-  }
+  /* ---------- phone layout: html.m is set by the Layout setting (Automatic = screens 700px wide or less) ---------- */
+  html.m,html.m body{overflow-x:hidden}
+  html.m input,html.m select,html.m textarea{font-size:16px}            /* stops iPhone zooming in when you tap a box */
+  html.m .top-in{height:52px;gap:8px;padding:0 12px;padding-top:env(safe-area-inset-top)}
+  html.m .top{padding-top:0}
+  html.m .brand span{display:none}
+  html.m .top-right{gap:8px;min-width:0}
+  html.m .top-right .pill{max-width:46vw;overflow:hidden;text-overflow:ellipsis}
+  /* tabs move to a bar along the bottom, like an app */
+  html.m .nav{position:fixed;left:0;right:0;bottom:0;height:auto;z-index:30;justify-content:space-around;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));background:var(--navy);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -8px 24px -12px rgba(0,0,0,.6)}
+  html.m .nav button{flex:1;flex-direction:column;gap:3px;padding:6px 0;border-radius:10px;font-size:10.5px;min-width:0}
+  html.m .nav button span{display:block!important;font:600 10.5px/1 var(--body)}
+  html.m .nav button svg{width:20px;height:20px}
+  html.m .page{padding:12px 12px calc(84px + env(safe-area-inset-bottom))}
+  html.m .toast{bottom:calc(78px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px)}
+  html.m .ph{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:12px}
+  html.m .ph h1{font-size:26px}
+  html.m .ph p{font-size:13.5px}
+  html.m .panel{padding:14px 14px}
+  html.m .panel.flush .panel-h{padding:12px 14px 0}
+  html.m .stats{grid-template-columns:1fr 1fr;gap:8px}
+  html.m .stats .stat .v{font-size:20px}
+  /* filter bars: search full width, drop-downs two per row */
+  html.m .panel.flush > .row{padding:10px 12px!important;gap:8px}
+  html.m .panel.flush > .row .search{width:100%!important;flex:1 1 100%}
+  html.m .panel.flush > .row select{flex:1 1 calc(50% - 8px);min-width:0}
+  html.m .panel.flush > .row .seg{flex:1 1 100%}
+  html.m .panel.flush > .row .seg button{flex:1}
+  html.m .panel.flush > .row .spacer{display:none}
+  /* tables become stacked card rows */
+  html.m .tbl-wrap{max-height:none!important;overflow:visible}
+  html.m .tbl thead{display:none}
+  html.m .tbl tbody tr{display:grid;grid-template-columns:46px repeat(auto-fill,minmax(82px,1fr));gap:6px 10px;padding:11px 12px;border-bottom:1px solid var(--line);align-items:center}
+  html.m .tbl tbody tr td{border:0;padding:0;min-width:0}
+  html.m .tbl tbody tr td.thc{grid-column:1;grid-row:1 / span 8;align-self:start;width:46px}
+  html.m .tbl tbody tr td.cc{grid-column:2 / -1;min-width:0}
+  html.m .tbl tbody tr td.cc .nm{font-size:15px}
+  html.m .tbl tbody tr td.n{text-align:left}
+  html.m .tbl tbody tr td[data-l]:not(.cc):not(.thc)::before{content:attr(data-l);display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}
+  html.m .tbl tbody tr td:empty{display:none}
+  html.m .tbl tbody tr td.empty{grid-column:1 / -1;grid-row:auto}
+  html.m .tbl tbody tr:has(td.empty){display:block}
+  html.m #inv-table td[data-l="Price age"],html.m #inv-table td[data-l="Added"],html.m #gr-table td[data-l="Added"]{display:none}
+  html.m .tbl .x{width:34px;height:34px}
+  /* card window: a full-width sheet from the bottom */
+  html.m .modal-bg{padding:0;align-items:flex-end}
+  html.m .modal,html.m .modal.wide{max-width:none;border-radius:18px 18px 0 0;max-height:94vh;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
+  html.m .modal h3{font-size:20px;margin-bottom:10px}
+  html.m .cm-wrap{grid-template-columns:84px minmax(0,1fr)!important;gap:12px!important}
+  html.m .cm-wrap .cm-right{display:contents}
+  html.m .cm-wrap #cm-img{width:84px!important;height:117px!important}
+  html.m .cm-wrap #cm-link{grid-column:2;grid-row:1;align-self:start}
+  html.m .cm-wrap #cm-link .row{flex-wrap:wrap;gap:6px}
+  html.m .cm-wrap form{grid-column:1 / -1}
+  html.m .grid.g3,html.m .grid.g2{grid-template-columns:1fr 1fr!important}
+  html.m .full-m,html.m .grid > .full-m{grid-column:1 / -1}
+  html.m .seg.cond{display:flex;width:100%}
+  html.m .seg.cond button{flex:1;min-width:0;padding:8px 0}
+  /* buy entry */
+  html.m .entry-row{grid-template-columns:1fr 1fr}
+  html.m .entry-row > .raw-only{grid-column:1 / -1}
+  /* trade: one side above the other, totals not stuck over the list */
+  html.m .trade-cols{grid-template-columns:1fr}
+  html.m .side{min-height:0}
+  html.m .tradebar{position:static;grid-template-columns:1fr 1fr;padding:14px}
+  html.m .tradebar .bal{grid-column:1 / -1}
+  html.m .tradebar > .grid{grid-column:1 / -1}
+  html.m .pcts .pct{min-width:0;padding:8px 10px}
+  html.m table.ctab{width:100%;table-layout:fixed}
+  html.m table.ctab th:first-child{width:62px}
+  html.m table.ctab input{width:100%;min-width:0;padding-left:6px;padding-right:4px}
+  /* phone layout picked on a big screen: keep it phone-width */
+  html.m.m-forced body{max-width:520px;margin:0 auto}
+  html.m.m-forced .nav{left:50%;right:auto;width:520px;max-width:100vw;transform:translateX(-50%)}
 </style>
 </head>
 <body>
@@ -785,6 +804,11 @@
             <div class="row"><input id="jt-key" type="password" placeholder="Paste your JustTCG API key" autocomplete="off" style="flex:1;min-width:180px"><button class="btn" id="jt-save">Save key</button></div>
             <div class="muted small" id="jt-msg" style="margin-top:8px"></div>
           </div></div>
+        <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="card"></span>Layout</h2></div>
+          <p class="muted small" style="margin:0 0 10px">Pick how Card Desk looks on this device. Each phone, tablet or computer remembers its own choice.</p>
+          <div class="seg" id="layout-seg"><button data-l="auto">Automatic</button><button data-l="phone">Phone</button><button data-l="computer">Computer</button></div>
+          <div class="muted small" id="layout-msg" style="margin-top:8px"></div>
+        </div>
         <div class="panel"><div class="panel-h"><h2><span class="ic" data-icon="user"></span>Account &amp; backup</h2></div>
           <div class="muted" id="acct" style="margin-bottom:10px"></div>
           <div class="row"><button class="btn" id="bk-down">Download backup</button><label class="btn" style="margin:0;color:var(--ink);font-size:14px">Restore from backup<input type="file" id="bk-up" accept=".json,application/json" style="display:none"></label><span class="spacer"></span><button class="btn danger" id="sign-out">Sign out</button></div>
@@ -2502,6 +2526,12 @@ function labelTables(root){
 new MutationObserver(muts => { for(const m of muts){ const t = m.target.closest ? m.target.closest("table.tbl") : null; if(t){ labelTables(t.parentNode); } else if(m.target.querySelector && m.target.querySelector("table.tbl")) labelTables(m.target); } })
   .observe(document.body, { childList:true, subtree:true });
 labelTables();
+
+// Settings › Layout
+{ const seg = $("#layout-seg"), pref = window.cdLayoutPref || "auto";
+  seg.querySelectorAll("[data-l]").forEach(x => x.classList.toggle("on", x.dataset.l===pref));
+  $("#layout-msg").textContent = pref==="auto" ? "Automatic: phone layout on small screens, computer layout on big ones." : pref==="phone" ? "Phone layout on this device, whatever the screen size." : "Computer layout on this device. On a phone, pinch to zoom.";
+  seg.onclick = e => { const x = e.target.closest("[data-l]"); if(x && x.dataset.l !== pref) window.cdLayout(x.dataset.l); }; }
 
 // ---------- data (Firebase: Google sign-in + Firestore with offline cache) ----------
 const fbApp = F.initializeApp(FIREBASE);
