@@ -183,6 +183,8 @@
   .cg.NM{background:var(--c-nm)}.cg.LP{background:var(--c-lp)}.cg.MP{background:var(--c-mp)}.cg.HP{background:var(--c-hp)}.cg.DMG{background:var(--c-dmg)}
   .pcts{display:flex;gap:5px;flex-wrap:wrap}
   .pct.tot{min-width:auto;padding:6px 11px}
+  .nav button{position:relative}
+  .nav button[data-n]::after{content:attr(data-n);position:absolute;top:2px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#F5C25A;color:#1a1300;font:700 10px/16px var(--body);text-align:center}
   .pct{min-width:50px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--paper);font:700 14px/1 var(--display);cursor:pointer;font-variant-numeric:tabular-nums;transition:all .12s}
   .pct:hover{border-color:var(--accent);color:var(--accent)}
   .pct.on{border-color:var(--navy);background:var(--navy);color:#fff;box-shadow:0 2px 6px -2px rgba(26,35,64,.6)}
@@ -1807,16 +1809,22 @@ const saleItems = (lines, pct) => lines.map(l => { const c=outLineCard(l); retur
 
 // ---------- SELL ----------
 const sell = { items:[], pct:100 };
+{ const sv = lsGet("cd-sell"); if(sv && Array.isArray(sv.items)){ sell.items = sv.items; if(SELL_PCTS.includes(sv.pct)) sell.pct = sv.pct; } }
+const saveSell = () => lsSet("cd-sell", { items:sell.items, pct:sell.pct });
 const sellPicker = mountInvPicker($("#sell-pick"), { onPick: c => { if(addOutLine(sell.items, c)){ renderSell(); } }, inCart: id => sell.items.filter(l=>l.cardId===id).reduce((s,l)=>s+l.qty,0) });
 $("#sell-adhoc").onclick = () => {
   openModal(`<h3>Sell an item not in inventory</h3><p class="muted">For anything you never entered: a binder card, an accessory, a one-off.</p>
     <form id="ah" class="grid g2"><div style="grid-column:1/-1"><label>Item name</label><input name="name" required></div>
     <div><label>Selling price $</label><input name="price" type="number" step="0.01" min="0" required></div>
     <div><label>What you paid $ (optional)</label><input name="cost" type="number" step="0.01" min="0" placeholder="0"></div>
-    <div style="grid-column:1/-1" class="row"><span class="spacer"></span><button type="button" class="btn" id="ah-x">Cancel</button><button class="btn primary">Add to sale</button></div></form>`, m => {
+    <div style="grid-column:1/-1"><label>Paid with</label><select name="method"><option>Cash</option><option>Card / digital</option><option>Other</option></select></div>
+    <div style="grid-column:1/-1" class="row"><button type="button" class="btn" id="ah-x">Cancel</button><span class="spacer"></span><button type="button" class="btn" id="ah-add" title="Put it on the sale with other cards, then tap Complete sale">Add to sale</button><button class="btn primary" id="ah-now">Record sale now</button></div>
+    <p class="muted small" style="grid-column:1/-1;margin:0">“Record sale now” saves it straight away${sell.items.length?" together with the other cards already in this sale":""}. “Add to sale” just puts it on the list — tap <b>Complete sale</b> when you're done.</p></form>`, m => {
       const f=m.querySelector("#ah"); f.name.focus();
       m.querySelector("#ah-x").onclick = closeModal;
-      f.onsubmit = e => { e.preventDefault(); const pr=r2(f.price.value); sell.items.push({ key:uid(), adhoc:true, name:f.name.value.trim(), cost:r2(f.cost.value), mkt:pr, price:pr, qty:1 }); closeModal(); renderSell(); };
+      const line = () => { const pr=r2(f.price.value); return { key:uid(), adhoc:true, name:f.name.value.trim(), cost:r2(f.cost.value), mkt:pr, price:pr, qty:1 }; };
+      m.querySelector("#ah-add").onclick = () => { if(!f.reportValidity()) return; sell.items.push(line()); closeModal(); saveSell(); renderSell(); toast("Added — tap Complete sale to record it"); const g=$("#sell-go"); if(g) g.scrollIntoView({behavior:"smooth", block:"center"}); };
+      f.onsubmit = e => { e.preventDefault(); const method = f.method.value; sell.items.push(line()); closeModal(); saveSell(); renderSell(); const sm=$("#sell-method"); if(sm) sm.value = method; completeSale(true); };
     });
 };
 function renderSell(){
@@ -1834,22 +1842,25 @@ function renderSell(){
     ${t.below?`<div class="chip bad" style="display:block;margin:8px 0;padding:6px 10px">${t.below} card${t.below===1?" is":"s are"} below your ${minP()}% minimum</div>`:""}
     <div class="grid g2" style="margin:10px 0"><div><label>Buyer (optional)</label><input id="sell-buyer"></div><div><label>Paid with</label><select id="sell-method"><option>Cash</option><option>Card / digital</option><option>Other</option></select></div></div>
     <button class="btn go" id="sell-go" ${sell.items.length?"":"disabled"}>Complete sale · ${money(t.total)}</button>`;
-  $("#sell-go").onclick = completeSale;
+  $("#sell-go").onclick = () => completeSale();
+  const sn = sell.items.reduce((s,l)=>s+l.qty,0), nb = document.querySelector('#nav [data-tab="sell"]');
+  if(nb){ if(sn) nb.setAttribute("data-n", sn); else nb.removeAttribute("data-n"); }
+  saveSell();
   sellPicker.draw();
 }
 $("#sell-table").onclick = e => outListClick(e, sell.items, () => sell.pct, renderSell);
-async function completeSale(){
+async function completeSale(skipAsk){
   if(!needDb() || !sell.items.length) return;
   const now=Date.now(), items = saleItems(sell.items, sell.pct);
   const total=r2(items.reduce((s,i)=>s+i.price*i.qty,0)), cost=r2(items.reduce((s,i)=>s+i.cost*i.qty,0));
-  if(!(await ask("Complete sale?", `Customer pays <b>${money(total)}</b>. Your profit: <b>${money(total-cost)}</b>.`, "Complete"))) return;
+  if(skipAsk!==true && !(await ask("Complete sale?", `Customer pays <b>${money(total)}</b>. Your profit: <b>${money(total-cost)}</b>.`, "Complete"))) return;
   const buyer=$("#sell-buyer").value||"", method=$("#sell-method").value||"";
   $("#sell-go").disabled=true;
   const ok = await safe(async () => {
     await db.collection("sales").doc().set({ at:now, pct:sell.pct, buyer, method, items, total, cost, profit:r2(total-cost) });
     for(const it of items){ const c=S.cards.find(x=>x.id===it.cardId); if(c) await db.collection("cards").doc(c.id).update({ qty:Math.max(0,(c.qty||0)-it.qty), lastSoldAt:now }); }
-  }, "Sale saved");
-  if(ok) sell.items=[];
+  }, `Sale saved · ${money(total)} — it's on the Money tab`);
+  if(ok){ sell.items=[]; saveSell(); }
   renderSell();
 }
 
@@ -2158,6 +2169,7 @@ function renderOverview(){
   if(upd) att.push(attItem("w","hourglass", `Saturday check: ${upd} card${upd===1?"":"s"} need${upd===1?"s":""} updating`, "Prices unchanged for over a week. Open each one and save to clear it.", "#inventory:upd"));
   if(unlinked) att.push(attItem("n","link", `${unlinked} card${unlinked===1?"":"s"} not linked to the catalog`, "No picture and no nightly price. Open the card and type its name to link it.", "#inventory:name"));
   if(noCert) att.push(attItem("n","slab", `${noCert} slab${noCert===1?"":"s"} without a cert number`, "Add it so you can verify the slab later.", "#graded"));
+  if(sell.items.length) att.push(attItem("w","sell", `Sale not completed yet (${sell.items.reduce((s,l)=>s+l.qty,0)} item${sell.items.reduce((s,l)=>s+l.qty,0)===1?"":"s"})`, "It isn't saved or counted on Money until you tap Complete sale.", "#sell","Open"));
   if(buy.items.length) att.push(attItem("n","buy", `Unfinished buy list (${buy.items.length} line${buy.items.length===1?"":"s"})`, `Offer so far ${money(buy.items.reduce((s,it)=>s+payEach(it,buy.pct)*it.qty,0))}.`, "#buy","Open"));
   if(trade.inItems.length || trade.outItems.length) att.push(attItem("n","trade", "Unfinished trade", `${trade.outItems.length} of yours, ${trade.inItems.length} of theirs.`, "#trade","Open"));
   $("#ov-att").innerHTML = att.length ? att.join("") : `<div class="ok"><span class="ai g">${svgIcon("check")}</span><span class="t">All clear<small>Prices are fresh and nothing's waiting on you.</small></span><span></span></div>`;
