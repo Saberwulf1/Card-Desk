@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Desk</title>
 <meta name="theme-color" content="#0A0F1D">
 <link rel="manifest" href="app.webmanifest">
@@ -485,6 +485,81 @@
   .qty{background:var(--sunk);border-color:var(--line-2)}
   .qty button:hover{background:rgba(255,255,255,.1)}
   .x:hover{background:var(--bad-bg)}
+
+  [hidden]{display:none!important}
+  /* ---------- phones ---------- */
+  @media (max-width:700px){
+    html,body{overflow-x:hidden}
+    input,select,textarea{font-size:16px}            /* stops iPhone zooming in when you tap a box */
+    .top-in{height:52px;gap:8px;padding:0 12px;padding-top:env(safe-area-inset-top)}
+    .top{padding-top:0}
+    .brand span{display:none}
+    .top-right{gap:8px;min-width:0}
+    .top-right .pill{max-width:46vw;overflow:hidden;text-overflow:ellipsis}
+    /* tabs move to a bar along the bottom, like an app */
+    .nav{position:fixed;left:0;right:0;bottom:0;height:auto;z-index:30;justify-content:space-around;gap:0;padding:6px 4px calc(6px + env(safe-area-inset-bottom));background:var(--navy);border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -8px 24px -12px rgba(0,0,0,.6)}
+    .nav button{flex:1;flex-direction:column;gap:3px;padding:6px 0;border-radius:10px;font-size:10.5px;min-width:0}
+    .nav button span{display:block!important;font:600 10.5px/1 var(--body)}
+    .nav button svg{width:20px;height:20px}
+    .page{padding:12px 12px calc(84px + env(safe-area-inset-bottom))}
+    .toast{bottom:calc(78px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px)}
+    .ph{flex-direction:column;align-items:flex-start;gap:2px;margin-bottom:12px}
+    .ph h1{font-size:26px}
+    .ph p{font-size:13.5px}
+    .panel{padding:14px 14px}
+    .panel.flush .panel-h{padding:12px 14px 0}
+    .stats{grid-template-columns:1fr 1fr;gap:8px}
+    .stats .stat .v{font-size:20px}
+    /* filter bars: search full width, drop-downs two per row */
+    .panel.flush > .row{padding:10px 12px!important;gap:8px}
+    .panel.flush > .row .search{width:100%!important;flex:1 1 100%}
+    .panel.flush > .row select{flex:1 1 calc(50% - 8px);min-width:0}
+    .panel.flush > .row .seg{flex:1 1 100%}
+    .panel.flush > .row .seg button{flex:1}
+    .panel.flush > .row .spacer{display:none}
+    /* tables become stacked card rows */
+    .tbl-wrap{max-height:none!important;overflow:visible}
+    .tbl thead{display:none}
+    .tbl tbody tr{display:grid;grid-template-columns:46px repeat(auto-fill,minmax(82px,1fr));gap:6px 10px;padding:11px 12px;border-bottom:1px solid var(--line);align-items:center}
+    .tbl tbody tr td{border:0;padding:0;min-width:0}
+    .tbl tbody tr td.thc{grid-column:1;grid-row:1 / span 8;align-self:start;width:46px}
+    .tbl tbody tr td.cc{grid-column:2 / -1;min-width:0}
+    .tbl tbody tr td.cc .nm{font-size:15px}
+    .tbl tbody tr td.n{text-align:left}
+    .tbl tbody tr td[data-l]:not(.cc):not(.thc)::before{content:attr(data-l);display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em}
+    .tbl tbody tr td:empty{display:none}
+    .tbl tbody tr td.empty{grid-column:1 / -1;grid-row:auto}
+    .tbl tbody tr:has(td.empty){display:block}
+    #inv-table td[data-l="Price age"], #inv-table td[data-l="Added"], #gr-table td[data-l="Added"]{display:none}
+    .tbl .x{width:34px;height:34px}
+    /* card window: a full-width sheet from the bottom */
+    .modal-bg{padding:0;align-items:flex-end}
+    .modal,.modal.wide{max-width:none;border-radius:18px 18px 0 0;max-height:94vh;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
+    .modal h3{font-size:20px;margin-bottom:10px}
+    .cm-wrap{grid-template-columns:84px minmax(0,1fr)!important;gap:12px!important}
+    .cm-wrap .cm-right{display:contents}
+    .cm-wrap #cm-img{width:84px!important;height:117px!important}
+    .cm-wrap #cm-link{grid-column:2;grid-row:1;align-self:start}
+    .cm-wrap #cm-link .row{flex-wrap:wrap;gap:6px}
+    .cm-wrap form{grid-column:1 / -1}
+    .grid.g3,.grid.g2{grid-template-columns:1fr 1fr!important}
+    .full-m,.grid > .full-m{grid-column:1 / -1}
+    .seg.cond{display:flex;width:100%}
+    .seg.cond button{flex:1;min-width:0;padding:8px 0}
+    /* buy entry */
+    .entry-row{grid-template-columns:1fr 1fr}
+    .entry-row > .raw-only{grid-column:1 / -1}
+    /* trade: one side above the other, totals not stuck over the list */
+    .trade-cols{grid-template-columns:1fr}
+    .side{min-height:0}
+    .tradebar{position:static;grid-template-columns:1fr 1fr;padding:14px}
+    .tradebar .bal{grid-column:1 / -1}
+    .tradebar > .grid{grid-column:1 / -1}
+    .pcts .pct{min-width:0;padding:8px 10px}
+    table.ctab{width:100%;table-layout:fixed}
+    table.ctab th:first-child{width:62px}
+    table.ctab input{width:100%;min-width:0;padding-left:6px;padding-right:4px}
+  }
 </style>
 </head>
 <body>
@@ -1375,15 +1450,15 @@ function cardModal(c, defaults={}){
   let link = c.productId ? { productId:c.productId, sub:c.sub||"", game:c.game||"", nm:c.nm ?? c.market } : null;
   let lock = !!c.lock;
   openModal(`<h3>${isNew?(isGraded(c)?"Add graded card":"Add card"):"Edit card"}</h3>
-    <div style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px">
-      <div><div class="entry-img" id="cm-img" style="width:150px;height:209px"></div></div>
-      <div>
+    <div class="cm-wrap" style="display:grid;grid-template-columns:150px minmax(0,1fr);gap:18px">
+      <div class="cm-imgcol"><div class="entry-img" id="cm-img" style="width:150px;height:209px"></div></div>
+      <div class="cm-right">
         <div id="cm-link"></div>
         <form class="grid g3 ${isGraded(c)?"is-graded":""} ${c.sealedPromo||isForeign(c)?"is-sealed":""}" id="cm" autocomplete="off">
           <div style="grid-column:1/3"><label>Card name</label><input name="name" required value="${esc(c.name)}" placeholder="Type to search the catalog, e.g. charizard base psa 10"></div>
-          <div><label>Set / number</label><input name="set" value="${esc(c.set)}"></div>
+          <div class="full-m"><label>Set / number</label><input name="set" value="${esc(c.set)}"></div>
           <div style="grid-column:1/-1" class="cm-sr" id="cm-sr" hidden><div class="dd-row"><select data-gsel title="Game"></select><span class="muted small" data-st style="flex:1;min-width:0"></span><button type="button" class="x" data-close title="Close">×</button></div><div class="cm-res" data-res></div></div>
-          <div class="raw-only"><label>Condition</label><div class="seg cond cm-cond">${CONDS.map(x=>`<button type="button" data-c="${x}" class="${x===(c.cond||"NM")?"on":""}">${x}</button>`).join("")}</div><select name="cond" hidden>${CONDS.map(x=>`<option ${x===(c.cond||"NM")?"selected":""}>${x}</option>`).join("")}</select></div>
+          <div class="raw-only full-m"><label>Condition</label><div class="seg cond cm-cond">${CONDS.map(x=>`<button type="button" data-c="${x}" class="${x===(c.cond||"NM")?"on":""}">${x}</button>`).join("")}</div><select name="cond" hidden>${CONDS.map(x=>`<option ${x===(c.cond||"NM")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Type</label><select name="kind">${KINDS.map(x=>`<option ${x===(c.kind||"Card")?"selected":""}>${x}</option>`).join("")}</select></div>
           <div><label>Qty in stock</label><input name="qty" type="number" min="0" value="${c.qty??1}"></div>
           <div><label>Language</label>${langSelect(isNew ? (c.lang || lsGet("cd-lang") || "English") : langOf(c))}</div>
@@ -2415,6 +2490,18 @@ $("#inv-jt").onclick = () => {
       m.querySelector("#jt-go").onclick = () => { const ro = !!(m.querySelector("#jt-own")||{}).checked; closeModal(); jtRun(el, { replaceOwn:ro }); };
     });
 };
+
+// phones: copy each table column's heading onto its cells, so stacked rows can label them
+function labelTables(root){
+  (root || document).querySelectorAll("table.tbl").forEach(t => {
+    const hs = [...t.querySelectorAll("thead th")].map(th => th.textContent.replace(/[▲▼]/g,"").trim());
+    if(!hs.length) return;
+    t.querySelectorAll("tbody tr").forEach(tr => [...tr.children].forEach((td,i) => { if(hs[i] && !td.hasAttribute("data-l")) td.setAttribute("data-l", hs[i]); }));
+  });
+}
+new MutationObserver(muts => { for(const m of muts){ const t = m.target.closest ? m.target.closest("table.tbl") : null; if(t){ labelTables(t.parentNode); } else if(m.target.querySelector && m.target.querySelector("table.tbl")) labelTables(m.target); } })
+  .observe(document.body, { childList:true, subtree:true });
+labelTables();
 
 // ---------- data (Firebase: Google sign-in + Firestore with offline cache) ----------
 const fbApp = F.initializeApp(FIREBASE);
